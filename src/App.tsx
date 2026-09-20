@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import logoImg from './assets/screen5.png';
 import IntroScreen from './IntroScreen';
+import ThemeCursor from './ThemeCursor';
 
 type Page = 'home' | 'about' | 'events' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
@@ -164,21 +165,21 @@ function StarField() {
 
 function GeoShapeLeft() {
   return (
-    <svg className="geo-shape" style={{ left: 20, top: '20%', width: 120 }} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="60,5 115,35 115,85 60,115 5,85 5,35 60,5" stroke="#7c5ff5" strokeWidth="1.5" fill="none"/>
-      <line x1="60" y1="5" x2="5" y2="85" stroke="#7c5ff5" strokeWidth="0.8"/>
-      <line x1="5" y1="35" x2="115" y2="85" stroke="#7c5ff5" strokeWidth="0.8"/>
-      <line x1="115" y1="35" x2="60" y2="115" stroke="#7c5ff5" strokeWidth="0.8"/>
+    <svg className="geo-shape" style={{ left: 20, top: '20%', width: 120, color: 'var(--geo-stroke)' }} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="60,5 115,35 115,85 60,115 5,85 5,35 60,5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <line x1="60" y1="5" x2="5" y2="85" stroke="currentColor" strokeWidth="0.8"/>
+      <line x1="5" y1="35" x2="115" y2="85" stroke="currentColor" strokeWidth="0.8"/>
+      <line x1="115" y1="35" x2="60" y2="115" stroke="currentColor" strokeWidth="0.8"/>
     </svg>
   );
 }
 
 function GeoShapeRight() {
   return (
-    <svg className="geo-shape" style={{ right: 20, bottom: '10%', width: 100 }} viewBox="0 0 100 100" fill="none">
-      <polyline points="50,5 95,30 95,70 50,95 5,70 5,30 50,5" stroke="#7c5ff5" strokeWidth="1.5" fill="none"/>
-      <line x1="50" y1="5" x2="5" y2="70" stroke="#7c5ff5" strokeWidth="0.8"/>
-      <line x1="95" y1="30" x2="50" y2="95" stroke="#7c5ff5" strokeWidth="0.8"/>
+    <svg className="geo-shape" style={{ right: 20, bottom: '10%', width: 100, color: 'var(--geo-stroke)' }} viewBox="0 0 100 100" fill="none">
+      <polyline points="50,5 95,30 95,70 50,95 5,70 5,30 50,5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <line x1="50" y1="5" x2="5" y2="70" stroke="currentColor" strokeWidth="0.8"/>
+      <line x1="95" y1="30" x2="50" y2="95" stroke="currentColor" strokeWidth="0.8"/>
     </svg>
   );
 }
@@ -188,14 +189,14 @@ function Navbar({ page, setPage, theme, setTheme }: {
   theme: Theme; setTheme: (t: Theme) => void;
 }) {
   return (
-    <nav style={{ background: 'rgba(7,7,26,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+    <nav style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}
       className="sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3 cursor-pointer" onClick={() => setPage('home')}>
-        <div style={{ background: 'rgba(124,95,245,0.15)', border: '1px solid rgba(124,95,245,0.3)' }}
+        <div style={{ background: 'var(--ambient-1)', border: '1px solid var(--border-medium)' }}
           className="w-9 h-9 rounded-lg flex items-center justify-center text-sm">⬡</div>
         <div>
           <div className="flex items-baseline gap-1">
-            <span className="font-bold text-white text-sm">Agent</span>
+            <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Agent</span>
             <span style={{ color: 'var(--accent-violet)' }} className="font-bold text-sm">Blazer</span>
             <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 10 }} className="font-light">collective</span>
           </div>
@@ -208,7 +209,8 @@ function Navbar({ page, setPage, theme, setTheme }: {
           <button
             key={link.id}
             onClick={() => setPage(link.id)}
-            className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${page === link.id ? 'nav-active text-white' : 'text-gray-400 hover:text-white'}`}
+            className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${page === link.id ? 'nav-active' : ''}`}
+            style={{ color: page === link.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}
           >
             {page === link.id && <span style={{ color: 'var(--accent-cyan)' }} className="mr-1.5">•</span>}
             {link.label}
@@ -223,7 +225,7 @@ function Navbar({ page, setPage, theme, setTheme }: {
         {THEMES.map(t => (
           <button
             key={t.id}
-            className={`theme-btn ${theme === t.id ? 'active' : ''}`}
+            className={`theme-btn theme-btn-${t.id} ${theme === t.id ? 'active' : ''}`}
             onClick={() => setTheme(t.id)}
           >
             <span>{t.icon}</span>
@@ -292,9 +294,9 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
             <div style={{
               width: 280,
               height: 280,
-              background: 'linear-gradient(135deg, rgba(124,95,245,0.15), rgba(168,85,247,0.1))',
+              background: 'linear-gradient(135deg, var(--ambient-1), var(--ambient-2))',
               clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-              border: '2px solid rgba(168,85,247,0.4)',
+              border: '2px solid var(--border-medium)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -304,7 +306,7 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
                 width: 240,
                 height: 240,
                 clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                background: 'linear-gradient(135deg, #1a0a3e, #2d0a5e)',
+                background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-primary))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -317,13 +319,13 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
               position: 'absolute',
               inset: -2,
               clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-              background: 'linear-gradient(135deg, rgba(168,85,247,0.3), transparent)',
+              background: 'linear-gradient(135deg, var(--accent-glow), transparent)',
               filter: 'blur(8px)',
               zIndex: -1,
             }} />
           </div>
           <div className="mt-4 text-center">
-            <div className="font-black text-2xl" style={{ background: 'linear-gradient(90deg, #22d3ee, #7c5ff5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <div className="font-black text-2xl" style={{ background: 'linear-gradient(90deg, var(--accent-cyan), var(--accent-violet))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               AgentBlazer
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase' }}>CLUB</div>
@@ -473,7 +475,7 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
       <GeoShapeLeft />
       <GeoShapeRight />
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-20">
-        <div style={{ width: 56, height: 56, background: 'rgba(124,95,245,0.15)', border: '1px solid rgba(124,95,245,0.3)', borderRadius: 14 }}
+        <div style={{ width: 56, height: 56, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 14 }}
           className="flex items-center justify-center text-2xl mb-6">⬡</div>
 
         <div className="pill-badge mb-6" style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(34,211,238,0.3)' }}>
@@ -501,7 +503,7 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
 
         <div className="card p-6 w-full max-w-xl mb-12">
           <div className="flex items-start gap-4">
-            <div style={{ width: 40, height: 40, background: 'rgba(124,95,245,0.15)', border: '1px solid rgba(124,95,245,0.3)', borderRadius: 10 }}
+            <div style={{ width: 40, height: 40, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 10 }}
               className="flex items-center justify-center text-lg flex-shrink-0">🏫</div>
             <div>
               <div className="font-bold mb-1">Department of Computer Science &amp; Engineering</div>
@@ -574,11 +576,11 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
 
 function Footer({ setPage }: { setPage: (p: Page) => void }) {
   return (
-    <footer style={{ borderTop: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.3)' }} className="relative z-10 px-16 py-12">
+    <footer style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--footer-bg)' }} className="relative z-10 px-16 py-12">
       <div className="grid grid-cols-3 gap-12" style={{ maxWidth: 1400, margin: '0 auto' }}>
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <div style={{ width: 36, height: 36, background: 'rgba(124,95,245,0.15)', border: '1px solid rgba(124,95,245,0.3)', borderRadius: 8 }}
+            <div style={{ width: 36, height: 36, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 8 }}
               className="flex items-center justify-center text-sm">⬡</div>
             <span className="font-bold">AgentBlazer Club</span>
           </div>
@@ -618,11 +620,21 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [page, setPage] = useState<Page>('home');
-  const [theme, setTheme] = useState<Theme>('violet');
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('agentblazer-theme') : null;
+    return (saved === 'violet' || saved === 'inferno' || saved === 'frost') ? saved : 'violet';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('agentblazer-theme', theme);
+  }, [theme]);
 
   return (
     <div className={`theme-${theme}`} style={{ minHeight: '100vh' }}>
       {showIntro && <IntroScreen onEnter={() => setShowIntro(false)} />}
+      <ThemeCursor theme={theme} />
       <StarField />
       <Navbar page={page} setPage={setPage} theme={theme} setTheme={setTheme} />
       <main className="relative z-10">
