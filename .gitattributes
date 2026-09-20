@@ -116,3 +116,4 @@
 *.png !text !filter !merge !diff
 *.jpg !text !filter !merge !diff
 *.jpeg !text !filter !merge !diff
+src/assets/intro.mp4 !text !filter !merge !diff

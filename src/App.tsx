@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import logoImg from './assets/screen5.png';
+import IntroScreen from './IntroScreen';
 
 type Page = 'home' | 'about' | 'events' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
@@ -615,11 +616,13 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 }
 
 export default function App() {
+  const [showIntro, setShowIntro] = useState(true);
   const [page, setPage] = useState<Page>('home');
   const [theme, setTheme] = useState<Theme>('violet');
 
   return (
     <div className={`theme-${theme}`} style={{ minHeight: '100vh' }}>
+      {showIntro && <IntroScreen onEnter={() => setShowIntro(false)} />}
       <StarField />
       <Navbar page={page} setPage={setPage} theme={theme} setTheme={setTheme} />
       <main className="relative z-10">
