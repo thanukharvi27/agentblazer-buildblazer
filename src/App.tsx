@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import logoImg from './assets/screen5.png';
+import logoImg from './assets/AgentBlazer_Logo.png';
 import IntroScreen from './IntroScreen';
 import ThemeCursor from './ThemeCursor';
+import InaugurationSection from './InaugurationSection';
 
 type Page = 'home' | 'about' | 'events' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
@@ -290,40 +291,15 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
 
         <div className="flex-shrink-0 ml-20 flex flex-col items-center">
-          <div className="relative">
-            <div style={{
+          <img
+            src={logoImg}
+            alt="AgentBlazer Logo"
+            style={{
               width: 280,
               height: 280,
-              background: 'linear-gradient(135deg, var(--ambient-1), var(--ambient-2))',
-              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-              border: '2px solid var(--border-medium)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}>
-              <div style={{
-                width: 240,
-                height: 240,
-                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-primary))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}>
-                <div style={{ fontSize: 80 }}>🤖</div>
-              </div>
-            </div>
-            <div style={{
-              position: 'absolute',
-              inset: -2,
-              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-              background: 'linear-gradient(135deg, var(--accent-glow), transparent)',
-              filter: 'blur(8px)',
-              zIndex: -1,
-            }} />
-          </div>
+              objectFit: 'contain',
+            }}
+          />
           <div className="mt-4 text-center">
             <div className="font-black text-2xl" style={{ background: 'linear-gradient(90deg, var(--accent-cyan), var(--accent-violet))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               AgentBlazer
@@ -406,6 +382,7 @@ function EventCard({ event }: { event: typeof EVENTS[0] }) {
 function AboutPage() {
   return (
     <div className="relative min-h-screen">
+      <InaugurationSection />
       <div className="relative z-10 px-16 py-16" style={{ maxWidth: 1400, margin: '0 auto' }}>
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
