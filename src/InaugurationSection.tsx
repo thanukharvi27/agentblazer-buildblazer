@@ -489,7 +489,7 @@ export default function InaugurationSection() {
         }
         @media (max-width: 1024px) {
           .inaug-inner {
-            padding: 40px 32px 36px !important;
+            padding: 40px 24px 36px !important;
           }
           .inaug-header-row {
             flex-direction: column !important;
@@ -498,9 +498,12 @@ export default function InaugurationSection() {
           }
           .inaug-header-row p {
             text-align: left !important;
+            max-width: 100% !important;
           }
           .inaug-launch-card {
             flex-direction: column !important;
+            padding: 28px 24px !important;
+            gap: 24px !important;
           }
           .inaug-date-card {
             width: 100% !important;
@@ -511,13 +514,26 @@ export default function InaugurationSection() {
         }
         @media (max-width: 640px) {
           .inaug-inner {
-            padding: 28px 16px 24px !important;
+            padding: 24px 16px 20px !important;
+          }
+          .inaug-launch-card {
+            padding: 20px 16px !important;
+            border-radius: 14px !important;
+            margin-bottom: 32px !important;
           }
           .inaug-guests-grid {
             grid-template-columns: 1fr !important;
           }
           .inaug-header-row h2 span {
-            font-size: 28px !important;
+            font-size: clamp(24px, 7vw, 32px) !important;
+          }
+        }
+        @media (max-width: 400px) {
+          .inaug-inner {
+            padding: 20px 12px !important;
+          }
+          .inaug-launch-card {
+            padding: 16px 12px !important;
           }
         }
       `}</style>
