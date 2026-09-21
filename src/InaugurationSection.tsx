@@ -388,6 +388,7 @@ export default function InaugurationSection() {
           {GUESTS.map((g) => (
             <div
               key={g.name}
+              className="inaug-guest-card"
               style={{
                 background: 'var(--bg-card)',
                 border: `1px solid ${g.borderColor}`,
@@ -534,6 +535,17 @@ export default function InaugurationSection() {
           }
           .inaug-launch-card {
             padding: 16px 12px !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .inaug-inner {
+            padding: 16px 8px !important;
+          }
+          .inaug-launch-card {
+            padding: 14px 10px !important;
+          }
+          .inaug-guest-card {
+            padding: 14px 12px !important;
           }
         }
       `}</style>
