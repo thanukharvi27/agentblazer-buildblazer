@@ -143,7 +143,8 @@ function NetworkCanvas() {
   );
 }
 
-export default function InaugurationSection() {
+export default function InaugurationSection({ guests }: { guests?: typeof GUESTS }) {
+  const displayGuests = guests && guests.length > 0 ? guests : GUESTS;
   return (
     <section className="inaug-section" style={{ position: 'relative', overflow: 'hidden' }}>
       <NetworkCanvas />
@@ -385,7 +386,7 @@ export default function InaugurationSection() {
             gap: 16,
           }}
         >
-          {GUESTS.map((g) => (
+          {displayGuests.map((g) => (
             <div
               key={g.name}
               className="inaug-guest-card"

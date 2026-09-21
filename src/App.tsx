@@ -4,6 +4,7 @@ import IntroScreen from './IntroScreen';
 import ThemeCursor from './ThemeCursor';
 import InaugurationSection from './InaugurationSection';
 import { GSOC_IMAGES, PROMPTOPS_IMAGES, CYBERSECURITY_IMAGES } from './imports/eventImages';
+import AdminApp from './admin/AdminApp';
 
 import rubenImg from './assets/Images/Ruben Saldana.WEBP';
 import ajayImg from './assets/Images/Ajay Preenal Dsouza .jpg';
@@ -12,6 +13,22 @@ import frennyImg from './assets/Images/Frenny Chrystal Saldanha.jpg';
 import joylineImg from './assets/Images/joyline V.jpg';
 import chinthanImg from './assets/Images/Chinthan N V.jpg';
 import keithImg from './assets/Images/mr-keith-raymond-fernandes.jpg';
+
+const FALLBACK_MEMBER_IMAGES: Record<string, string> = {
+  'Mr. Keith Fernandes': keithImg,
+  'Ruben Saldanha': rubenImg,
+  'Ajay Preenal Dsouza': ajayImg,
+  'Stevin Dsouza': stevinImg,
+  'Frenny Chrystal Saldanha': frennyImg,
+  'Joyline Galbao': joylineImg,
+  'Chinthan N V': chinthanImg,
+};
+
+const FALLBACK_EVENT_GALLERIES: Record<string, string[]> = {
+  'Master the Future: A Hands-on GSoC & LLMs Workshop': GSOC_IMAGES,
+  'PROMPT OPS-2K26 Challenge': PROMPTOPS_IMAGES,
+  'Cyber Security & Career Pathways': CYBERSECURITY_IMAGES,
+};
 
 type Page = 'home' | 'about' | 'events' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
@@ -415,7 +432,7 @@ function HomePage({ setPage }: { setPage: (p: Page) => void }) {
   );
 }
 
-function EventsPage() {
+function EventsPage({ events = EVENTS }: { events?: any[] }) {
   const [activeEvent, setActiveEvent] = useState<{
     title: string;
     badge: string;
@@ -428,7 +445,7 @@ function EventsPage() {
   const eventCloseTimerRef = useRef<number | null>(null);
 
   const handleEventActivate = (
-    event: typeof EVENTS[0],
+    event: any,
     cardEl: HTMLElement
   ) => {
     if (!event.hoverImages || event.hoverImages.length === 0) return;
@@ -532,9 +549,9 @@ function EventsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {EVENTS.map((ev, i) => (
+          {events.map((ev, i) => (
             <EventCard
-              key={i}
+              key={ev.id || ev.title || i}
               event={ev}
               isActive={isPreviewOpen && activeEvent?.title === ev.title}
               hasAnyActive={isPreviewOpen}
@@ -565,7 +582,7 @@ function EventCard({
   onActivate,
   onDeactivate,
 }: {
-  event: typeof EVENTS[0];
+  event: any;
   isActive: boolean;
   hasAnyActive: boolean;
   onActivate: (el: HTMLElement) => void;
@@ -574,6 +591,7 @@ function EventCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const hasImages = event.hoverImages && event.hoverImages.length > 0;
   const [hovered, setHovered] = useState(false);
+  const isFilled = isActive || (hovered && !hasAnyActive);
 
   return (
     <div
@@ -589,42 +607,24 @@ function EventCard({
       onClick={() => {
         if (hasImages && cardRef.current) onActivate(cardRef.current);
       }}
-      className={`card p-6 flex flex-col gap-3 cursor-pointer`}
-      style={{
-        transition:
-          'background 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-        ...(isActive
-          ? {
-              background:
-                'linear-gradient(135deg, rgba(34, 211, 238, 0.16) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(13, 11, 28, 0.9) 100%)',
-              borderColor: 'rgba(34, 211, 238, 0.8)',
-              boxShadow:
-                '0 0 28px rgba(34, 211, 238, 0.45), 0 0 55px rgba(139, 92, 246, 0.3), inset 0 0 16px rgba(34, 211, 238, 0.12)',
-              transform: 'translateY(-2px)',
-            }
-          : {
-              borderColor: hovered && !hasImages ? 'rgba(124,95,245,0.3)' : undefined,
-            }),
-      }}
+      className={`p-6 flex flex-col gap-3 cursor-pointer rounded-xl transition-all duration-300 ${
+        isFilled ? 'card-active-theme' : 'card'
+      }`}
     >
       <div className="flex items-center justify-between">
-        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{event.date}</span>
-        <span className={`badge ${event.badgeClass}`}>{event.badge}</span>
+        <span
+          className={isFilled ? 'card-highlight-subtitle' : ''}
+          style={{ color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)', fontSize: 12 }}
+        >
+          {event.date}
+        </span>
+        <span className={`badge ${event.badgeClass} ${isFilled ? 'card-highlight-badge' : ''}`}>{event.badge}</span>
       </div>
       <h3
-        className="font-bold text-lg leading-snug"
+        className={`font-bold text-lg leading-snug ${isFilled ? 'card-highlight-title' : ''}`}
         style={{
           transition: 'all 0.35s ease',
-          ...(isActive
-            ? {
-                background: 'linear-gradient(135deg, #ffffff 20%, #38bdf8 65%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.6))',
-              }
-            : {
-                color: 'var(--text-primary)',
-              }),
+          color: isFilled ? 'var(--card-fill-title)' : 'var(--text-primary)',
         }}
       >
         {event.title}
@@ -632,21 +632,42 @@ function EventCard({
       {event.tracks && (
         <div className="flex gap-2 flex-wrap">
           {event.tracks.map(t => (
-            <span key={t} className="badge badge-violet">{t}</span>
+            <span key={t} className={`badge badge-violet ${isFilled ? 'card-highlight-badge' : ''}`}>{t}</span>
           ))}
         </div>
       )}
       {'leads' in event && event.leads && (
-        <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{event.leads}</div>
+        <div
+          className={isFilled ? 'card-highlight-subtitle' : ''}
+          style={{ color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)', fontSize: 12 }}
+        >
+          {event.leads}
+        </div>
       )}
       {'platform' in event && event.platform && (
-        <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{event.platform}</div>
+        <div
+          className={isFilled ? 'card-highlight-subtitle' : ''}
+          style={{ color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)', fontSize: 12 }}
+        >
+          {event.platform}
+        </div>
       )}
-      <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, flex: 1 }}>{event.description}</p>
+      <p
+        className={isFilled ? 'card-highlight-text' : ''}
+        style={{
+          color: isFilled ? 'var(--card-fill-text)' : 'var(--text-secondary)',
+          fontSize: 13,
+          lineHeight: 1.6,
+          flex: 1,
+        }}
+      >
+        {event.description}
+      </p>
       <div className="flex items-center justify-between mt-2 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <span
+          className={isFilled ? 'card-highlight-subtitle' : ''}
           style={{
-            color: isActive ? '#38bdf8' : 'var(--text-muted)',
+            color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)',
             fontSize: 11,
             transition: 'color 0.3s ease',
           }}
@@ -655,7 +676,14 @@ function EventCard({
             ? (isActive || hovered ? 'Viewing gallery →' : 'Hover to view gallery')
             : (hovered ? 'View details →' : 'Hover to inspect gallery')}
         </span>
-        {event.meta && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{event.meta}</span>}
+        {event.meta && (
+          <span
+            className={isFilled ? 'card-highlight-subtitle' : ''}
+            style={{ color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)', fontSize: 11 }}
+          >
+            {event.meta}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -763,12 +791,11 @@ function FloatingEventPreview({
           zIndex: 9999,
           borderRadius: '20px',
           overflow: 'hidden',
-          background: 'rgba(10, 8, 24, 0.94)',
+          background: 'var(--preview-card-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1.5px solid rgba(34, 211, 238, 0.65)',
-          boxShadow:
-            '0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(34, 211, 238, 0.4), 0 0 70px rgba(124, 58, 237, 0.3), inset 0 0 20px rgba(34, 211, 238, 0.12)',
+          border: '1.5px solid var(--preview-card-border)',
+          boxShadow: 'var(--preview-card-shadow)',
           opacity: isOpen ? 1 : 0,
           transform: isOpen
             ? 'scale(1) translateY(0px)'
@@ -879,35 +906,22 @@ function FloatingEventPreview({
           </div>
         </div>
 
-        {/* Bottom Details Content */}
+        {/* Bottom Details Content — ONLY main heading/title */}
         <div
           style={{
             position: 'relative',
             zIndex: 10,
-            padding: '20px 22px',
+            padding: '24px 22px',
             display: 'flex',
             flexDirection: 'column',
           }}
         >
-          <div
-            style={{
-              color: 'var(--accent-cyan)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: '4px',
-            }}
-          >
-            {event.badge}
-          </div>
-
           <h3
             style={{
               fontSize: '22px',
               fontWeight: 800,
-              lineHeight: 1.2,
-              marginBottom: '8px',
+              lineHeight: 1.25,
+              margin: 0,
               background: 'linear-gradient(135deg, #ffffff 40%, #38bdf8 75%, #c084fc 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -916,48 +930,6 @@ function FloatingEventPreview({
           >
             {event.title}
           </h3>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <span
-              className={`badge ${event.badgeClass}`}
-              style={{ fontSize: '11px', padding: '3px 10px' }}
-            >
-              {event.badge}
-            </span>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>• SJEC CSE</span>
-          </div>
-
-          <p
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              lineHeight: 1.55,
-              margin: 0,
-              opacity: 0.95,
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {event.description}
-          </p>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '14px',
-              paddingTop: '10px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <span>Autonomous AI Lab</span>
-            <span>Academic Year 2025–2026</span>
-          </div>
         </div>
       </div>
     </>
@@ -1039,12 +1011,11 @@ function FloatingPortrait({
           zIndex: 9999,
           borderRadius: '20px',
           overflow: 'hidden',
-          background: 'rgba(10, 8, 24, 0.94)',
+          background: 'var(--preview-card-bg)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1.5px solid rgba(34, 211, 238, 0.65)',
-          boxShadow:
-            '0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(34, 211, 238, 0.4), 0 0 70px rgba(124, 58, 237, 0.3), inset 0 0 20px rgba(34, 211, 238, 0.12)',
+          border: '1.5px solid var(--preview-card-border)',
+          boxShadow: 'var(--preview-card-shadow)',
           opacity: isOpen ? 1 : 0,
           transform: isOpen
             ? 'scale(1) translateY(0px)'
@@ -1228,7 +1199,17 @@ function FloatingPortrait({
   );
 }
 
-function AboutPage() {
+function AboutPage({
+  faculty = FACULTY,
+  team = TEAM,
+  cwc = CORE_WORKING_COMMITTEE,
+  guests,
+}: {
+  faculty?: any[];
+  team?: any[];
+  cwc?: any[];
+  guests?: any[];
+}) {
   const [activeMember, setActiveMember] = useState<{
     name: string;
     role: string;
@@ -1340,7 +1321,7 @@ function AboutPage() {
 
   return (
     <div className="relative min-h-screen">
-      <InaugurationSection />
+      <InaugurationSection guests={guests} />
       <div className="page-container relative z-10">
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
@@ -1348,73 +1329,65 @@ function AboutPage() {
             <h2 className="text-xl font-bold">Faculty Advisory Council</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {FACULTY.map(f => {
-              const isKeith = f.name === 'Mr. Keith Fernandes';
-              const isKeithActive = isOpen && activeMember?.name === f.name;
+            {faculty.map((f, i) => {
+              const hasPortrait = Boolean(f.image);
+              const isFacultyActive = isOpen && activeMember?.name === f.name;
               return (
                 <div
-                  key={f.name}
-                  className={`card p-5 flex items-center gap-4 transition-all duration-300 ${isKeith ? 'cursor-pointer' : ''}`}
-                  style={{
-                    ...(isKeithActive
-                      ? {
-                          background:
-                            'linear-gradient(135deg, rgba(34, 211, 238, 0.16) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(13, 11, 28, 0.9) 100%)',
-                          borderColor: 'rgba(34, 211, 238, 0.8)',
-                          boxShadow:
-                            '0 0 28px rgba(34, 211, 238, 0.45), 0 0 55px rgba(139, 92, 246, 0.3), inset 0 0 16px rgba(34, 211, 238, 0.12)',
-                          transform: 'translateY(-2px)',
-                        }
-                      : {}),
-                  }}
+                  key={f.id || f.name || i}
+                  className={`p-5 flex items-center gap-4 transition-all duration-300 rounded-xl ${hasPortrait ? 'cursor-pointer' : ''} ${
+                    isFacultyActive ? 'card-active-theme' : 'card'
+                  }`}
                   onMouseEnter={(e) => {
-                    if (isKeith) handleActivate(f, e.currentTarget);
+                    if (hasPortrait) handleActivate(f, e.currentTarget);
                   }}
                   onMouseLeave={() => {
-                    if (isKeith) handleDeactivate();
+                    if (hasPortrait) handleDeactivate();
                   }}
                   onClick={(e) => {
-                    if (isKeith) handleActivate(f, e.currentTarget);
+                    if (hasPortrait) handleActivate(f, e.currentTarget);
                   }}
                 >
                   <div style={{
                     width: 44, height: 44, borderRadius: 10,
-                    background: isKeith && isKeithActive
-                      ? 'linear-gradient(135deg, #06b6d4, #8b5cf6)'
-                      : 'linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end))',
+                    background: 'linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 700, fontSize: 14, flexShrink: 0,
                     transition: 'all 0.3s ease',
+                    boxShadow: isFacultyActive ? '0 0 12px var(--accent-glow)' : 'none',
                   }}>{f.initials}</div>
                   <div className="flex-1 min-w-0">
                     <div
-                      className="font-semibold truncate"
+                      className={`font-semibold truncate ${isFacultyActive ? 'card-highlight-title' : ''}`}
                       style={{
                         transition: 'all 0.35s ease',
-                        ...(isKeithActive
-                          ? {
-                              background: 'linear-gradient(135deg, #ffffff 20%, #38bdf8 65%, #c084fc 100%)',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent',
-                              filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.6))',
-                            }
-                          : {}),
+                        color: isFacultyActive ? 'var(--card-fill-title)' : 'var(--text-primary)',
                       }}
                     >
                       {f.name}
                     </div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 12 }} className="truncate">{f.role}</div>
+                    <div
+                      className={`truncate ${isFacultyActive ? 'card-highlight-subtitle' : ''}`}
+                      style={{
+                        color: isFacultyActive ? 'var(--card-fill-subtitle)' : 'var(--text-muted)',
+                        fontSize: 12,
+                      }}
+                    >
+                      {f.role}
+                    </div>
                   </div>
-                  <button
-                    className="badge badge-violet flex-shrink-0"
-                    style={{ cursor: 'pointer' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isKeith) handleActivate(f, e.currentTarget.closest('.card') as HTMLElement);
-                    }}
-                  >
-                    Portrait View
-                  </button>
+                  {hasPortrait && (
+                    <button
+                      className={`badge badge-violet flex-shrink-0 ${isFacultyActive ? 'card-highlight-badge' : ''}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleActivate(f, e.currentTarget.closest('.card, .card-active-theme') as HTMLElement);
+                      }}
+                    >
+                      Portrait View
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1432,9 +1405,9 @@ function AboutPage() {
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Academic Year 2025–2026</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
-            {TEAM.map(m => (
+            {team.map((m, i) => (
               <TeamCard
-                key={m.name}
+                key={m.id || m.name || i}
                 member={m}
                 isActive={isOpen && activeMember?.name === m.name}
                 hasAnyActive={isOpen}
@@ -1478,7 +1451,7 @@ function AboutPage() {
           }} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CORE_WORKING_COMMITTEE.map(m => (
+            {cwc.map((m, i) => (
               <div
                 key={m.name}
                 style={{
@@ -1564,7 +1537,7 @@ function TeamCard({
   onActivate,
   onDeactivate,
 }: {
-  member: typeof TEAM[0];
+  member: any;
   isActive: boolean;
   hasAnyActive: boolean;
   onActivate: (el: HTMLElement) => void;
@@ -1573,6 +1546,7 @@ function TeamCard({
   const cardRef = useRef<HTMLDivElement>(null);
 
   const showOriginalHighlight = member.highlighted && !hasAnyActive;
+  const isFilled = isActive || showOriginalHighlight;
 
   return (
     <div
@@ -1584,33 +1558,14 @@ function TeamCard({
       onClick={() => {
         if (cardRef.current) onActivate(cardRef.current);
       }}
-      className={`p-6 rounded-xl flex flex-col gap-3 cursor-pointer ${
-        isActive
-          ? ''
-          : showOriginalHighlight
-          ? 'member-card-highlighted'
-          : 'card'
+      className={`p-6 rounded-xl flex flex-col gap-3 cursor-pointer transition-all duration-300 ${
+        isFilled ? 'card-active-theme' : 'card'
       }`}
-      style={{
-        transition:
-          'background 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-        ...(isActive
-          ? {
-              background:
-                'linear-gradient(135deg, rgba(34, 211, 238, 0.16) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(13, 11, 28, 0.9) 100%)',
-              borderColor: 'rgba(34, 211, 238, 0.8)',
-              borderWidth: '1px',
-              borderStyle: 'solid',
-              boxShadow:
-                '0 0 28px rgba(34, 211, 238, 0.45), 0 0 55px rgba(139, 92, 246, 0.3), inset 0 0 16px rgba(34, 211, 238, 0.12)',
-              transform: 'translateY(-2px)',
-            }
-          : {}),
-      }}
     >
       <div
+        className={isFilled ? 'card-highlight-subtitle' : ''}
         style={{
-          color: isActive ? '#38bdf8' : 'var(--text-muted)',
+          color: isFilled ? 'var(--card-fill-subtitle)' : 'var(--text-muted)',
           fontSize: 11,
           fontWeight: 600,
           letterSpacing: '0.04em',
@@ -1620,25 +1575,25 @@ function TeamCard({
         {member.role}
       </div>
       <h3
-        className="text-xl font-bold"
+        className={`text-xl font-bold ${isFilled ? 'card-highlight-title' : ''}`}
         style={{
           transition: 'all 0.35s ease',
-          ...(isActive
-            ? {
-                background: 'linear-gradient(135deg, #ffffff 20%, #38bdf8 65%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.6))',
-              }
-            : {
-                color: showOriginalHighlight ? 'var(--accent-gold)' : 'var(--text-primary)',
-              }),
+          color: isFilled ? 'var(--card-fill-title)' : 'var(--text-primary)',
         }}
       >
         {member.name}
       </h3>
-      <span className={`badge ${member.titleClass} self-start`}>{member.title}</span>
-      <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>{member.description}</p>
+      <span className={`badge ${member.titleClass} self-start ${isFilled ? 'card-highlight-badge' : ''}`}>{member.title}</span>
+      <p
+        className={isFilled ? 'card-highlight-text' : ''}
+        style={{
+          color: isFilled ? 'var(--card-fill-text)' : 'var(--text-secondary)',
+          fontSize: 13,
+          lineHeight: 1.6,
+        }}
+      >
+        {member.description}
+      </p>
     </div>
   );
 }
@@ -1795,6 +1750,10 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
 }
 
 export default function App() {
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  });
+
   const [showIntro, setShowIntro] = useState(true);
   const [page, setPage] = useState<Page>('home');
   const [theme, setTheme] = useState<Theme>(() => {
@@ -1802,11 +1761,123 @@ export default function App() {
     return (saved === 'violet' || saved === 'inferno' || saved === 'frost') ? saved : 'violet';
   });
 
+  const [publicEvents, setPublicEvents] = useState<any[]>(EVENTS);
+  const [publicFaculty, setPublicFaculty] = useState<any[]>(FACULTY);
+  const [publicTeam, setPublicTeam] = useState<any[]>(TEAM);
+  const [publicCwc, setPublicCwc] = useState<any[]>(CORE_WORKING_COMMITTEE);
+  const [publicGuests, setPublicGuests] = useState<any[] | undefined>(undefined);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsAdmin(window.location.pathname.startsWith('/admin'));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('agentblazer-theme', theme);
   }, [theme]);
+
+  // Fetch live backend data if available, keeping static fallbacks
+  useEffect(() => {
+    if (isAdmin) return;
+
+    fetch('/api/public/data')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch public data');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.events && Array.isArray(data.events) && data.events.length > 0) {
+          const mappedEvents = data.events.map((e: any) => {
+            let hoverImages: string[] | null = null;
+            if (Array.isArray(e.gallery) && e.gallery.length > 0) {
+              hoverImages = e.gallery;
+            } else if (e.cover_image) {
+              hoverImages = [e.cover_image];
+            } else if (FALLBACK_EVENT_GALLERIES[e.title]) {
+              hoverImages = FALLBACK_EVENT_GALLERIES[e.title];
+            }
+
+            return {
+              id: e.id,
+              date: e.date,
+              badge: e.badge,
+              badgeClass: e.badge_class || e.badgeClass || 'badge-violet',
+              title: e.title,
+              description: e.description,
+              meta: e.meta || null,
+              tracks: e.tracks || null,
+              leads: e.leads || null,
+              platform: e.platform || null,
+              hoverImages,
+            };
+          });
+          setPublicEvents(mappedEvents);
+        }
+
+        if (data.members) {
+          if (Array.isArray(data.members.faculty) && data.members.faculty.length > 0) {
+            setPublicFaculty(data.members.faculty.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              role: m.role,
+              initials: m.initials || m.name.split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase(),
+              title: m.title || 'Faculty Coordinator',
+              titleClass: m.title_class || 'badge-violet',
+              description: m.description || '',
+              image: m.image_url || FALLBACK_MEMBER_IMAGES[m.name] || undefined,
+            })));
+          }
+
+          if (Array.isArray(data.members.student) && data.members.student.length > 0) {
+            setPublicTeam(data.members.student.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              role: m.role,
+              title: m.title || 'Core Member',
+              titleClass: m.title_class || 'badge-green',
+              description: m.description || '',
+              highlighted: Boolean(m.highlighted),
+              image: m.image_url || FALLBACK_MEMBER_IMAGES[m.name] || undefined,
+            })));
+          }
+
+          if (Array.isArray(data.members.cwc) && data.members.cwc.length > 0) {
+            setPublicCwc(data.members.cwc.map((m: any) => ({
+              id: m.id,
+              name: m.name,
+              role: m.role,
+              initials: m.initials || m.name.split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase(),
+              initialsColor: m.initials_color || '#22d3ee',
+            })));
+          }
+        }
+
+        if (data.guests && Array.isArray(data.guests) && data.guests.length > 0) {
+          setPublicGuests(data.guests.map((g: any) => ({
+            id: g.id,
+            initials: g.initials,
+            name: g.name,
+            org: g.org,
+            role: g.role,
+            label: g.label,
+            labelColor: g.label_color || '#38bdf8',
+            borderColor: g.border_color || 'rgba(56, 189, 248, 0.45)',
+          })));
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend unavailable, using static fallback:', err);
+      });
+  }, [isAdmin]);
+
+  if (isAdmin) {
+    return <AdminApp />;
+  }
 
   return (
     <div className={`theme-${theme}`} style={{ minHeight: '100vh' }}>
@@ -1816,8 +1887,8 @@ export default function App() {
       <Navbar page={page} setPage={setPage} theme={theme} setTheme={setTheme} />
       <main className="relative z-10">
         {page === 'home' && <HomePage setPage={setPage} />}
-        {page === 'about' && <AboutPage />}
-        {page === 'events' && <EventsPage />}
+        {page === 'about' && <AboutPage faculty={publicFaculty} team={publicTeam} cwc={publicCwc} guests={publicGuests} />}
+        {page === 'events' && <EventsPage events={publicEvents} />}
         {page === 'join' && <JoinPage setPage={setPage} />}
       </main>
     </div>

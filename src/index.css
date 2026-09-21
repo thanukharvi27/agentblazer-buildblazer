@@ -12,8 +12,8 @@
   --bg-secondary: #090612;
   --surface: rgba(16, 11, 28, 0.7);
   --surface-hover: rgba(26, 17, 46, 0.85);
-  --bg-card: rgba(16, 11, 28, 0.7);
-  --bg-card-hover: rgba(26, 17, 46, 0.85);
+  --bg-card: rgba(14, 10, 26, 0.78);
+  --bg-card-hover: rgba(24, 16, 44, 0.9);
   --border-subtle: rgba(124, 58, 237, 0.2);
   --border-medium: rgba(139, 92, 246, 0.38);
   --text-primary: #ffffff;
@@ -33,13 +33,35 @@
   --footer-bg: rgba(9, 6, 18, 0.92);
   --star-color: rgba(196, 181, 253, 0.7);
   --dot-color: rgba(139, 92, 246, 0.25);
-  --card-highlight-bg: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(168, 85, 247, 0.25));
-  --card-highlight-border: rgba(139, 92, 246, 0.5);
   --badge-accent-bg: rgba(124, 58, 237, 0.2);
   --badge-accent-color: #c4b5fd;
   --badge-accent-border: rgba(139, 92, 246, 0.35);
   --geo-stroke: #7c3aed;
   --accent-gold: #d4a84b;
+
+  /* Card Fill (Active / Highlighted) — Luminous Cyan to Deep Royal Violet */
+  --card-fill-bg: radial-gradient(circle at 18% 18%, rgba(34, 211, 238, 0.45), transparent 60%),
+                  linear-gradient(135deg, rgba(14, 165, 233, 0.38) 0%, rgba(99, 102, 241, 0.35) 45%, rgba(124, 58, 237, 0.55) 100%),
+                  #0c0a22;
+  --card-fill-border: rgba(56, 189, 248, 0.85);
+  --card-fill-shadow: 0 0 28px rgba(56, 189, 248, 0.45), 0 0 55px rgba(124, 58, 237, 0.35), inset 0 0 20px rgba(56, 189, 248, 0.16);
+  --card-fill-title: #fbbf24;
+  --card-fill-title-shadow: 0 0 14px rgba(251, 191, 36, 0.45);
+  --card-fill-subtitle: #38bdf8;
+  --card-fill-text: #e2e8f0;
+  --card-fill-badge-bg: rgba(5, 4, 14, 0.85);
+  --card-fill-badge-border: rgba(34, 211, 238, 0.8);
+  --card-fill-badge-color: #22d3ee;
+  --card-highlight-bg: var(--card-fill-bg);
+  --card-highlight-border: var(--card-fill-border);
+  --card-highlight-shadow: var(--card-fill-shadow);
+
+  /* Floating Preview Modal */
+  --preview-card-bg: rgba(10, 8, 24, 0.95);
+  --preview-card-border: rgba(34, 211, 238, 0.65);
+  --preview-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(34, 211, 238, 0.4), 0 0 70px rgba(124, 58, 237, 0.3), inset 0 0 20px rgba(34, 211, 238, 0.12);
+  --preview-card-title: #ffffff;
+  --preview-card-subtitle: #38bdf8;
 }
 
 [data-theme="inferno"],
@@ -48,8 +70,8 @@
   --bg-secondary: #100605;
   --surface: rgba(24, 8, 7, 0.75);
   --surface-hover: rgba(38, 14, 12, 0.9);
-  --bg-card: rgba(24, 8, 7, 0.75);
-  --bg-card-hover: rgba(38, 14, 12, 0.9);
+  --bg-card: rgba(22, 9, 8, 0.82);
+  --bg-card-hover: rgba(38, 14, 12, 0.92);
   --border-subtle: rgba(234, 61, 24, 0.22);
   --border-medium: rgba(249, 115, 22, 0.45);
   --text-primary: #ffffff;
@@ -69,13 +91,35 @@
   --footer-bg: rgba(16, 6, 5, 0.92);
   --star-color: rgba(254, 215, 170, 0.65);
   --dot-color: rgba(249, 115, 22, 0.25);
-  --card-highlight-bg: linear-gradient(135deg, rgba(234, 61, 24, 0.25), rgba(249, 115, 22, 0.25));
-  --card-highlight-border: rgba(249, 115, 22, 0.5);
   --badge-accent-bg: rgba(249, 115, 22, 0.2);
   --badge-accent-color: #fed7aa;
   --badge-accent-border: rgba(249, 115, 22, 0.35);
   --geo-stroke: #f97316;
   --accent-gold: #ffc247;
+
+  /* Card Fill (Active / Highlighted) — Radiant Warm Amber to Fiery Charcoal Ember */
+  --card-fill-bg: radial-gradient(circle at 18% 18%, rgba(251, 146, 60, 0.45), transparent 60%),
+                  linear-gradient(135deg, rgba(234, 61, 24, 0.4) 0%, rgba(249, 115, 22, 0.35) 50%, rgba(124, 45, 18, 0.5) 100%),
+                  #150705;
+  --card-fill-border: rgba(249, 115, 22, 0.9);
+  --card-fill-shadow: 0 0 28px rgba(249, 115, 22, 0.5), 0 0 60px rgba(234, 61, 24, 0.35), inset 0 0 20px rgba(251, 146, 60, 0.2);
+  --card-fill-title: #fde047;
+  --card-fill-title-shadow: 0 0 14px rgba(253, 224, 71, 0.45);
+  --card-fill-subtitle: #fdba74;
+  --card-fill-text: #fed7aa;
+  --card-fill-badge-bg: rgba(67, 20, 7, 0.85);
+  --card-fill-badge-border: rgba(249, 115, 22, 0.85);
+  --card-fill-badge-color: #fed7aa;
+  --card-highlight-bg: var(--card-fill-bg);
+  --card-highlight-border: var(--card-fill-border);
+  --card-highlight-shadow: var(--card-fill-shadow);
+
+  /* Floating Preview Modal */
+  --preview-card-bg: rgba(18, 8, 6, 0.96);
+  --preview-card-border: rgba(249, 115, 22, 0.7);
+  --preview-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(249, 115, 22, 0.45), 0 0 70px rgba(234, 61, 24, 0.3), inset 0 0 20px rgba(249, 115, 22, 0.12);
+  --preview-card-title: #ffffff;
+  --preview-card-subtitle: #fdba74;
 }
 
 [data-theme="frost"],
@@ -84,7 +128,7 @@
   --bg-secondary: #eff7ff;
   --surface: rgba(255, 255, 255, 0.92);
   --surface-hover: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.9);
   --bg-card-hover: #ffffff;
   --border-subtle: rgba(14, 165, 233, 0.2);
   --border-medium: rgba(2, 132, 199, 0.4);
@@ -105,13 +149,35 @@
   --footer-bg: rgba(239, 247, 255, 0.96);
   --star-color: rgba(14, 165, 233, 0.45);
   --dot-color: rgba(14, 165, 233, 0.2);
-  --card-highlight-bg: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(14, 165, 233, 0.15));
-  --card-highlight-border: rgba(2, 132, 199, 0.5);
   --badge-accent-bg: rgba(14, 165, 233, 0.15);
   --badge-accent-color: #0284c7;
   --badge-accent-border: rgba(14, 165, 233, 0.35);
   --geo-stroke: #0ea5e9;
   --accent-gold: #0284c7;
+
+  /* Card Fill (Active / Highlighted) — Frosted Luminous Ice-Cyan Gradient */
+  --card-fill-bg: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.4), transparent 70%),
+                  linear-gradient(135deg, rgba(224, 242, 254, 0.96) 0%, rgba(186, 230, 253, 0.85) 50%, rgba(240, 249, 255, 0.96) 100%),
+                  #f0f9ff;
+  --card-fill-border: rgba(14, 165, 233, 0.85);
+  --card-fill-shadow: 0 0 25px rgba(56, 189, 248, 0.5), 0 0 50px rgba(14, 165, 233, 0.25), inset 0 0 20px rgba(56, 189, 248, 0.2);
+  --card-fill-title: #0f172a;
+  --card-fill-title-shadow: none;
+  --card-fill-subtitle: #0284c7;
+  --card-fill-text: #334155;
+  --card-fill-badge-bg: rgba(255, 255, 255, 0.92);
+  --card-fill-badge-border: rgba(2, 132, 199, 0.65);
+  --card-fill-badge-color: #0284c7;
+  --card-highlight-bg: var(--card-fill-bg);
+  --card-highlight-border: var(--card-fill-border);
+  --card-highlight-shadow: var(--card-fill-shadow);
+
+  /* Floating Preview Modal */
+  --preview-card-bg: rgba(255, 255, 255, 0.98);
+  --preview-card-border: rgba(14, 165, 233, 0.65);
+  --preview-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.15), 0 0 35px rgba(14, 165, 233, 0.3), 0 0 70px rgba(2, 132, 199, 0.15), inset 0 0 20px rgba(14, 165, 233, 0.08);
+  --preview-card-title: #0f172a;
+  --preview-card-subtitle: #0284c7;
 }
 
 /* ==========================================================================
@@ -339,9 +405,40 @@ footer,
   stroke: var(--geo-stroke) !important;
 }
 
+/* Active / Highlighted Card Styles — fills inside with theme gradient */
+.card-active-theme,
 .member-card-highlighted {
-  background: var(--card-highlight-bg);
-  border: 1px solid var(--card-highlight-border);
+  background: var(--card-fill-bg) !important;
+  border-color: var(--card-fill-border) !important;
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  box-shadow: var(--card-fill-shadow) !important;
+  transform: translateY(-2px);
+}
+
+.card-active-theme .card-highlight-title,
+.member-card-highlighted .card-highlight-title {
+  color: var(--card-fill-title) !important;
+  -webkit-text-fill-color: var(--card-fill-title) !important;
+  background: none !important;
+  filter: var(--card-fill-title-shadow, none);
+}
+
+.card-active-theme .card-highlight-subtitle,
+.member-card-highlighted .card-highlight-subtitle {
+  color: var(--card-fill-subtitle) !important;
+}
+
+.card-active-theme .card-highlight-text,
+.member-card-highlighted .card-highlight-text {
+  color: var(--card-fill-text) !important;
+}
+
+.card-active-theme .card-highlight-badge,
+.member-card-highlighted .card-highlight-badge {
+  background: var(--card-fill-badge-bg) !important;
+  border: 1px solid var(--card-fill-badge-border) !important;
+  color: var(--card-fill-badge-color) !important;
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
