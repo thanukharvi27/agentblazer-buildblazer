@@ -116,3 +116,4 @@
 *.jpg !text !filter !merge !diff
 *.jpeg !text !filter !merge !diff
 src/assets/intro.mp4 !text !filter !merge !diff
+src/assets/Images/Ruben[[:space:]]Saldana.WEBP !text !filter !merge !diff

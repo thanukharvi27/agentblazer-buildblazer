@@ -4,6 +4,14 @@ import IntroScreen from './IntroScreen';
 import ThemeCursor from './ThemeCursor';
 import InaugurationSection from './InaugurationSection';
 
+import rubenImg from './assets/Images/Ruben Saldana.WEBP';
+import ajayImg from './assets/Images/Ajay Preenal Dsouza .jpg';
+import stevinImg from './assets/Images/Stevin D Souza.jpg';
+import frennyImg from './assets/Images/Frenny Chrystal Saldanha.jpg';
+import joylineImg from './assets/Images/joyline V.jpg';
+import chinthanImg from './assets/Images/Chinthan N V.jpg';
+import keithImg from './assets/Images/mr-keith-raymond-fernandes.jpg';
+
 type Page = 'home' | 'about' | 'events' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
 
@@ -81,7 +89,15 @@ const EVENTS = [
 
 const FACULTY = [
   { initials: 'NR', name: 'Ms. Nisha Roche', role: 'Assistant Professor, CSE • Faculty Coordinator' },
-  { initials: 'KF', name: 'Mr. Keith Fernandes', role: 'Assistant Professor, CSE • Faculty Coordinator' },
+  {
+    initials: 'KF',
+    name: 'Mr. Keith Fernandes',
+    role: 'Assistant Professor, CSE • Faculty Coordinator',
+    title: 'Faculty Coordinator',
+    titleClass: 'badge-violet',
+    description: 'Guiding student researchers in computer science and engineering at SJEC.',
+    image: keithImg,
+  },
 ];
 
 const TEAM = [
@@ -92,6 +108,7 @@ const TEAM = [
     titleClass: 'badge-green',
     description: 'Guiding club vision, university collaborations, and strategic workshop series.',
     highlighted: false,
+    image: rubenImg,
   },
   {
     role: 'Executive Vice President',
@@ -100,6 +117,7 @@ const TEAM = [
     titleClass: 'badge-gold',
     description: 'Coordinating student mentorship, event operations, and community growth.',
     highlighted: true,
+    image: ajayImg,
   },
   {
     role: 'Technical Direction',
@@ -108,6 +126,7 @@ const TEAM = [
     titleClass: 'badge-cyan',
     description: 'Technical architectures, hands-on lab environments, and repository supervision.',
     highlighted: false,
+    image: stevinImg,
   },
   {
     role: 'Operations & Logistics',
@@ -116,6 +135,7 @@ const TEAM = [
     titleClass: 'badge-gold',
     description: 'Managing cloud compute budgets, venue infrastructure, and participant toolkits.',
     highlighted: false,
+    image: frennyImg,
   },
   {
     role: 'Administration',
@@ -124,6 +144,7 @@ const TEAM = [
     titleClass: 'badge-gold',
     description: 'Documentation, accreditation reporting, meeting minutes, and member onboarding.',
     highlighted: false,
+    image: joylineImg,
   },
   {
     role: 'Creative Outreach',
@@ -132,6 +153,7 @@ const TEAM = [
     titleClass: 'badge-violet',
     description: 'Brand storytelling, photo documentation, visual design, and social publications.',
     highlighted: false,
+    image: chinthanImg,
   },
 ];
 
@@ -379,7 +401,371 @@ function EventCard({ event }: { event: typeof EVENTS[0] }) {
   );
 }
 
+const CORE_WORKING_COMMITTEE = [
+  {
+    initials: 'PR',
+    initialsColor: '#22d3ee',
+    name: 'Prajwal Royston Cordiero',
+    role: 'AI & LLM Research Group',
+  },
+  {
+    initials: 'CA',
+    initialsColor: '#c084fc',
+    name: 'Chacko P Abraham',
+    role: 'Model Evaluation Benchmarks',
+  },
+  {
+    initials: 'AR',
+    initialsColor: '#f59e0b',
+    name: 'Alma Roxane Pereira',
+    role: 'Project Operations & Labs',
+  },
+];
+
+function FloatingPortrait({
+  member,
+  position,
+  isOpen,
+  onMouseEnter,
+  onMouseLeave,
+  onClose,
+}: {
+  member: {
+    name: string;
+    role: string;
+    title?: string;
+    titleClass?: string;
+    description?: string;
+    image: string;
+  } | null;
+  position: { left: number; top: number };
+  isOpen: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onClose: () => void;
+}) {
+  if (!member) return null;
+
+  return (
+    <>
+      {/* Tap-outside backdrop for mobile/tablet */}
+      <div
+        className="fixed inset-0 z-40 md:hidden"
+        style={{
+          background: 'rgba(0, 0, 0, 0.55)',
+          backdropFilter: 'blur(4px)',
+          opacity: isOpen ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+        onClick={onClose}
+      />
+
+      {/* Floating Portrait Card */}
+      <div
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={{
+          position: 'fixed',
+          left: `${position.left}px`,
+          top: `${position.top}px`,
+          width: '340px',
+          maxWidth: 'calc(100vw - 32px)',
+          height: '470px',
+          maxHeight: 'calc(100vh - 32px)',
+          zIndex: 9999,
+          borderRadius: '20px',
+          overflow: 'hidden',
+          background: 'rgba(10, 8, 24, 0.94)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1.5px solid rgba(34, 211, 238, 0.65)',
+          boxShadow:
+            '0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(34, 211, 238, 0.4), 0 0 70px rgba(124, 58, 237, 0.3), inset 0 0 20px rgba(34, 211, 238, 0.12)',
+          opacity: isOpen ? 1 : 0,
+          transform: isOpen
+            ? 'scale(1) translateY(0px)'
+            : 'scale(0.92) translateY(12px)',
+          transition:
+            'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: isOpen ? 'auto' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Full bleed image */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }}>
+          <img
+            src={member.image}
+            alt={member.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: member.name === 'Frenny Chrystal Saldanha' ? 'center 30%' : 'center 15%',
+              transform: isOpen ? 'scale(1)' : 'scale(1.05)',
+              transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          />
+
+          {/* Vignette & Gradient Overlays */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(180deg, rgba(7, 5, 18, 0.82) 0%, rgba(7, 5, 18, 0.12) 32%, rgba(7, 5, 18, 0.25) 50%, rgba(7, 5, 18, 0.95) 85%, rgba(5, 4, 14, 0.99) 100%)',
+            }}
+          />
+        </div>
+
+        {/* Top Header Row */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            padding: '16px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div
+            className="pill-badge"
+            style={{
+              borderColor: 'rgba(34, 211, 238, 0.45)',
+              color: '#22d3ee',
+              background: 'rgba(5, 4, 14, 0.75)',
+              backdropFilter: 'blur(10px)',
+              fontSize: '10px',
+              padding: '4px 12px',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              boxShadow: '0 0 12px rgba(34, 211, 238, 0.2)',
+            }}
+          >
+            ⬡ AgentBlazer Club
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close portrait"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: 'rgba(10, 8, 22, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '13px',
+              lineHeight: 1,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.8)';
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(10, 8, 22, 0.75)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Bottom Details Content */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 10,
+            padding: '20px 22px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              color: 'var(--accent-cyan)',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginBottom: '4px',
+            }}
+          >
+            {member.role}
+          </div>
+
+          <h3
+            style={{
+              fontSize: '22px',
+              fontWeight: 800,
+              lineHeight: 1.2,
+              marginBottom: '8px',
+              background: 'linear-gradient(135deg, #ffffff 40%, #38bdf8 75%, #c084fc 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.5))',
+            }}
+          >
+            {member.name}
+          </h3>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span
+              className={`badge ${member.titleClass || 'badge-violet'}`}
+              style={{ fontSize: '11px', padding: '3px 10px' }}
+            >
+              {member.title}
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>• SJEC CSE</span>
+          </div>
+
+          {member.description && (
+            <p
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                lineHeight: 1.55,
+                margin: 0,
+                opacity: 0.95,
+              }}
+            >
+              {member.description}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '14px',
+              paddingTop: '10px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              fontSize: '10px',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <span>Autonomous AI Lab</span>
+            <span>Academic Year 2025–2026</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function AboutPage() {
+  const [activeMember, setActiveMember] = useState<{
+    name: string;
+    role: string;
+    title?: string;
+    titleClass?: string;
+    description?: string;
+    image: string;
+  } | null>(null);
+
+  const [portraitPos, setPortraitPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+  const [isOpen, setIsOpen] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const handleActivate = (
+    member: {
+      name: string;
+      role: string;
+      title?: string;
+      titleClass?: string;
+      description?: string;
+      image?: string;
+    },
+    cardEl: HTMLElement
+  ) => {
+    if (!member.image) return;
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    const rect = cardEl.getBoundingClientRect();
+    const PORTRAIT_WIDTH = Math.min(340, window.innerWidth - 32);
+    const PORTRAIT_HEIGHT = Math.min(480, window.innerHeight - 32);
+
+    let left = rect.left + (rect.width - PORTRAIT_WIDTH) / 2;
+    let top = rect.top + (rect.height - PORTRAIT_HEIGHT) / 2;
+
+    const margin = 16;
+    if (left < margin) left = margin;
+    if (left + PORTRAIT_WIDTH > window.innerWidth - margin) {
+      left = window.innerWidth - PORTRAIT_WIDTH - margin;
+    }
+    if (top < margin) top = margin;
+    if (top + PORTRAIT_HEIGHT > window.innerHeight - margin) {
+      top = window.innerHeight - PORTRAIT_HEIGHT - margin;
+    }
+
+    setPortraitPos({ left, top });
+    setActiveMember({
+      name: member.name,
+      role: member.role,
+      title: member.title || 'Core Member',
+      titleClass: member.titleClass || 'badge-violet',
+      description: member.description || '',
+      image: member.image,
+    });
+    setIsOpen(true);
+  };
+
+  const handleDeactivate = () => {
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      setTimeout(() => {
+        setActiveMember((curr) => (curr ? null : null));
+      }, 320);
+    }, 120);
+  };
+
+  const cancelDeactivate = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const forceClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setIsOpen(false);
+    setTimeout(() => {
+      setActiveMember(null);
+    }, 320);
+  };
+
+  useEffect(() => {
+    const handleScrollOrResize = () => {
+      if (isOpen) {
+        forceClose();
+      }
+    };
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen]);
+
   return (
     <div className="relative min-h-screen">
       <InaugurationSection />
@@ -390,21 +776,76 @@ function AboutPage() {
             <h2 className="text-xl font-bold">Faculty Advisory Council</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            {FACULTY.map(f => (
-              <div key={f.name} className="card p-5 flex items-center gap-4">
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10,
-                  background: 'linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700, fontSize: 14, flexShrink: 0
-                }}>{f.initials}</div>
-                <div className="flex-1">
-                  <div className="font-semibold">{f.name}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{f.role}</div>
+            {FACULTY.map(f => {
+              const isKeith = f.name === 'Mr. Keith Fernandes';
+              const isKeithActive = isOpen && activeMember?.name === f.name;
+              return (
+                <div
+                  key={f.name}
+                  className={`card p-5 flex items-center gap-4 transition-all duration-300 ${isKeith ? 'cursor-pointer' : ''}`}
+                  style={{
+                    ...(isKeithActive
+                      ? {
+                          background:
+                            'linear-gradient(135deg, rgba(34, 211, 238, 0.16) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(13, 11, 28, 0.9) 100%)',
+                          borderColor: 'rgba(34, 211, 238, 0.8)',
+                          boxShadow:
+                            '0 0 28px rgba(34, 211, 238, 0.45), 0 0 55px rgba(139, 92, 246, 0.3), inset 0 0 16px rgba(34, 211, 238, 0.12)',
+                          transform: 'translateY(-2px)',
+                        }
+                      : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isKeith) handleActivate(f, e.currentTarget);
+                  }}
+                  onMouseLeave={() => {
+                    if (isKeith) handleDeactivate();
+                  }}
+                  onClick={(e) => {
+                    if (isKeith) handleActivate(f, e.currentTarget);
+                  }}
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 10,
+                    background: isKeith && isKeithActive
+                      ? 'linear-gradient(135deg, #06b6d4, #8b5cf6)'
+                      : 'linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: 14, flexShrink: 0,
+                    transition: 'all 0.3s ease',
+                  }}>{f.initials}</div>
+                  <div className="flex-1">
+                    <div
+                      className="font-semibold"
+                      style={{
+                        transition: 'all 0.35s ease',
+                        ...(isKeithActive
+                          ? {
+                              background: 'linear-gradient(135deg, #ffffff 20%, #38bdf8 65%, #c084fc 100%)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.6))',
+                            }
+                          : {}),
+                      }}
+                    >
+                      {f.name}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{f.role}</div>
+                  </div>
+                  <button
+                    className="badge badge-violet"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isKeith) handleActivate(f, e.currentTarget.closest('.card') as HTMLElement);
+                    }}
+                  >
+                    Portrait View
+                  </button>
                 </div>
-                <button className="badge badge-violet" style={{ cursor: 'pointer' }}>Portrait View</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -420,21 +861,208 @@ function AboutPage() {
           </div>
           <div className="grid grid-cols-3 gap-5 mt-6">
             {TEAM.map(m => (
-              <TeamCard key={m.name} member={m} />
+              <TeamCard
+                key={m.name}
+                member={m}
+                isActive={isOpen && activeMember?.name === m.name}
+                hasAnyActive={isOpen}
+                onActivate={(el) => handleActivate(m, el)}
+                onDeactivate={handleDeactivate}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Core Working Committee Section */}
+        <section className="mt-14" style={{
+          background: 'rgba(10, 14, 26, 0.75)',
+          border: '1px solid rgba(139, 92, 246, 0.25)',
+          borderRadius: '16px',
+          padding: '24px 28px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
+        }}>
+          <div className="flex items-center justify-between">
+            <span style={{
+              color: '#22d3ee',
+              fontWeight: 700,
+              fontSize: 12,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}>
+              CORE WORKING COMMITTEE
+            </span>
+            <span style={{
+              color: '#94a3b8',
+              fontSize: 12,
+              fontWeight: 400,
+            }}>
+              Departmental Representatives
+            </span>
+          </div>
+
+          <div style={{
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            margin: '16px 0 20px 0',
+          }} />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {CORE_WORKING_COMMITTEE.map(m => (
+              <div
+                key={m.name}
+                style={{
+                  background: 'rgba(18, 22, 36, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    minWidth: 44,
+                    borderRadius: 10,
+                    background: 'rgba(30, 27, 60, 0.85)',
+                    border: '1px solid rgba(139, 92, 246, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    color: m.initialsColor,
+                    flexShrink: 0,
+                  }}
+                >
+                  {m.initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    style={{
+                      color: 'var(--text-primary)',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {m.name}
+                  </div>
+                  <div
+                    style={{
+                      color: '#94a3b8',
+                      fontSize: 12,
+                      marginTop: 4,
+                      lineHeight: 1.3,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {m.role}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </section>
       </div>
+
+      {/* Floating Portrait Overlay */}
+      <FloatingPortrait
+        member={activeMember}
+        position={portraitPos}
+        isOpen={isOpen}
+        onMouseEnter={cancelDeactivate}
+        onMouseLeave={handleDeactivate}
+        onClose={forceClose}
+      />
     </div>
   );
 }
 
-function TeamCard({ member }: { member: typeof TEAM[0] }) {
+function TeamCard({
+  member,
+  isActive,
+  hasAnyActive,
+  onActivate,
+  onDeactivate,
+}: {
+  member: typeof TEAM[0];
+  isActive: boolean;
+  hasAnyActive: boolean;
+  onActivate: (el: HTMLElement) => void;
+  onDeactivate: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const showOriginalHighlight = member.highlighted && !hasAnyActive;
+
   return (
-    <div className={`p-6 rounded-xl flex flex-col gap-3 ${member.highlighted ? 'member-card-highlighted' : 'card'}`}>
-      <div style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>{member.role}</div>
-      <h3 className={`text-xl font-bold ${member.highlighted ? '' : ''}`}
-        style={{ color: member.highlighted ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+    <div
+      ref={cardRef}
+      onMouseEnter={() => {
+        if (cardRef.current) onActivate(cardRef.current);
+      }}
+      onMouseLeave={onDeactivate}
+      onClick={() => {
+        if (cardRef.current) onActivate(cardRef.current);
+      }}
+      className={`p-6 rounded-xl flex flex-col gap-3 cursor-pointer ${
+        isActive
+          ? ''
+          : showOriginalHighlight
+          ? 'member-card-highlighted'
+          : 'card'
+      }`}
+      style={{
+        transition:
+          'background 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+        ...(isActive
+          ? {
+              background:
+                'linear-gradient(135deg, rgba(34, 211, 238, 0.16) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(13, 11, 28, 0.9) 100%)',
+              borderColor: 'rgba(34, 211, 238, 0.8)',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              boxShadow:
+                '0 0 28px rgba(34, 211, 238, 0.45), 0 0 55px rgba(139, 92, 246, 0.3), inset 0 0 16px rgba(34, 211, 238, 0.12)',
+              transform: 'translateY(-2px)',
+            }
+          : {}),
+      }}
+    >
+      <div
+        style={{
+          color: isActive ? '#38bdf8' : 'var(--text-muted)',
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+          transition: 'color 0.3s ease',
+        }}
+      >
+        {member.role}
+      </div>
+      <h3
+        className="text-xl font-bold"
+        style={{
+          transition: 'all 0.35s ease',
+          ...(isActive
+            ? {
+                background: 'linear-gradient(135deg, #ffffff 20%, #38bdf8 65%, #c084fc 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.6))',
+              }
+            : {
+                color: showOriginalHighlight ? 'var(--accent-gold)' : 'var(--text-primary)',
+              }),
+        }}
+      >
         {member.name}
       </h3>
       <span className={`badge ${member.titleClass} self-start`}>{member.title}</span>
