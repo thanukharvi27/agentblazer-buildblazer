@@ -255,9 +255,6 @@ function Navbar({ page, setPage, theme, setTheme }: {
               {link.label}
             </button>
           ))}
-          {page === 'join' && (
-            <button className="btn-primary ml-2 px-4 py-2 text-sm rounded-lg">Join &amp; Connect</button>
-          )}
         </div>
 
         {/* Desktop Themes Switcher */}
