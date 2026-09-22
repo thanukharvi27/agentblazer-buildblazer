@@ -5,6 +5,9 @@ import ThemeCursor from './ThemeCursor';
 import InaugurationSection from './InaugurationSection';
 import { GSOC_IMAGES, PROMPTOPS_IMAGES, CYBERSECURITY_IMAGES } from './imports/eventImages';
 import AdminApp from './admin/AdminApp';
+import { StarField } from './StarField';
+import { DynamicGeoShape } from './DynamicGeoShape';
+import { CoreWorkingCommittee } from './components/CoreWorkingCommittee';
 
 import rubenImg from './assets/Images/Ruben Saldana.WEBP';
 import ajayImg from './assets/Images/Ajay Preenal Dsouza .jpg';
@@ -181,53 +184,23 @@ const TEAM = [
   },
 ];
 
-function StarField() {
-  const stars = Array.from({ length: 60 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2 + 0.5,
-    dur: (Math.random() * 4 + 2).toFixed(1),
-    delay: (Math.random() * 4).toFixed(1),
-  }));
-  return (
-    <div className="stars-bg">
-      {stars.map(s => (
-        <div
-          key={s.id}
-          className="star"
-          style={{
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            width: `${s.size}px`,
-            height: `${s.size}px`,
-            '--dur': `${s.dur}s`,
-            '--delay': `${s.delay}s`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
-}
-
 function GeoShapeLeft() {
   return (
-    <svg className="geo-shape" style={{ left: 20, top: '20%', width: 120, color: 'var(--geo-stroke)' }} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="60,5 115,35 115,85 60,115 5,85 5,35 60,5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <line x1="60" y1="5" x2="5" y2="85" stroke="currentColor" strokeWidth="0.8"/>
-      <line x1="5" y1="35" x2="115" y2="85" stroke="currentColor" strokeWidth="0.8"/>
-      <line x1="115" y1="35" x2="60" y2="115" stroke="currentColor" strokeWidth="0.8"/>
-    </svg>
+    <DynamicGeoShape
+      position="left"
+      size={140}
+      style={{ left: 24, top: '18%' }}
+    />
   );
 }
 
 function GeoShapeRight() {
   return (
-    <svg className="geo-shape" style={{ right: 20, bottom: '10%', width: 100, color: 'var(--geo-stroke)' }} viewBox="0 0 100 100" fill="none">
-      <polyline points="50,5 95,30 95,70 50,95 5,70 5,30 50,5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <line x1="50" y1="5" x2="5" y2="70" stroke="currentColor" strokeWidth="0.8"/>
-      <line x1="95" y1="30" x2="50" y2="95" stroke="currentColor" strokeWidth="0.8"/>
-    </svg>
+    <DynamicGeoShape
+      position="right"
+      size={130}
+      style={{ right: 28, bottom: '12%' }}
+    />
   );
 }
 
@@ -535,6 +508,7 @@ function EventsPage({ events = EVENTS }: { events?: any[] }) {
   return (
     <div className="relative min-h-screen">
       <GeoShapeLeft />
+      <GeoShapeRight />
       <div className="page-container relative z-10">
         <div className="text-center mb-12">
           <div className="pill-badge inline-flex mb-6" style={{ letterSpacing: '0.08em', fontSize: 10, color: 'var(--text-muted)' }}>
@@ -1419,102 +1393,7 @@ function AboutPage({
         </section>
 
         {/* Core Working Committee Section */}
-        <section className="cwc-container mt-14" style={{
-          background: 'rgba(10, 14, 26, 0.75)',
-          border: '1px solid rgba(139, 92, 246, 0.25)',
-          borderRadius: '16px',
-          padding: '24px 28px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
-        }}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span style={{
-              color: '#22d3ee',
-              fontWeight: 700,
-              fontSize: 12,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}>
-              CORE WORKING COMMITTEE
-            </span>
-            <span style={{
-              color: '#94a3b8',
-              fontSize: 12,
-              fontWeight: 400,
-            }}>
-              Departmental Representatives
-            </span>
-          </div>
-
-          <div style={{
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            margin: '16px 0 20px 0',
-          }} />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cwc.map((m, i) => (
-              <div
-                key={m.name}
-                style={{
-                  background: 'rgba(18, 22, 36, 0.65)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: '12px',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                }}
-              >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    minWidth: 44,
-                    borderRadius: 10,
-                    background: 'rgba(30, 27, 60, 0.85)',
-                    border: '1px solid rgba(139, 92, 246, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: m.initialsColor,
-                    flexShrink: 0,
-                  }}
-                >
-                  {m.initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div
-                    style={{
-                      color: 'var(--text-primary)',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      lineHeight: 1.3,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {m.name}
-                  </div>
-                  <div
-                    style={{
-                      color: '#94a3b8',
-                      fontSize: 12,
-                      marginTop: 4,
-                      lineHeight: 1.3,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {m.role}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <CoreWorkingCommittee cwc={cwc} />
       </div>
 
       {/* Floating Portrait Overlay */}

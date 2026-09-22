@@ -16,6 +16,10 @@
   --bg-card-hover: rgba(24, 16, 44, 0.9);
   --border-subtle: rgba(124, 58, 237, 0.2);
   --border-medium: rgba(139, 92, 246, 0.38);
+  --border-neon: rgba(168, 85, 247, 0.85);
+  --neon-primary: #a855f7;
+  --neon-secondary: #22d3ee;
+  --neon-accent: #818cf8;
   --text-primary: #ffffff;
   --text-secondary: #c4b5fd;
   --text-muted: #8b5cf6aa;
@@ -38,6 +42,11 @@
   --badge-accent-border: rgba(139, 92, 246, 0.35);
   --geo-stroke: #7c3aed;
   --accent-gold: #d4a84b;
+
+  /* Card Hover Variables */
+  --card-hover-bg: rgba(26, 17, 48, 0.92);
+  --card-hover-border: rgba(168, 85, 247, 0.85);
+  --card-hover-role-color: #22d3ee;
 
   /* Card Fill (Active / Highlighted) — Luminous Cyan to Deep Royal Violet */
   --card-fill-bg: radial-gradient(circle at 18% 18%, rgba(34, 211, 238, 0.45), transparent 60%),
@@ -74,6 +83,10 @@
   --bg-card-hover: rgba(38, 14, 12, 0.92);
   --border-subtle: rgba(234, 61, 24, 0.22);
   --border-medium: rgba(249, 115, 22, 0.45);
+  --border-neon: rgba(249, 115, 22, 0.88);
+  --neon-primary: #f97316;
+  --neon-secondary: #ea3d18;
+  --neon-accent: #ffc247;
   --text-primary: #ffffff;
   --text-secondary: #fed7aa;
   --text-muted: #f97316aa;
@@ -96,6 +109,11 @@
   --badge-accent-border: rgba(249, 115, 22, 0.35);
   --geo-stroke: #f97316;
   --accent-gold: #ffc247;
+
+  /* Card Hover Variables */
+  --card-hover-bg: rgba(38, 14, 12, 0.95);
+  --card-hover-border: rgba(249, 115, 22, 0.9);
+  --card-hover-role-color: #ffc247;
 
   /* Card Fill (Active / Highlighted) — Radiant Warm Amber to Fiery Charcoal Ember */
   --card-fill-bg: radial-gradient(circle at 18% 18%, rgba(251, 146, 60, 0.45), transparent 60%),
@@ -124,60 +142,69 @@
 
 [data-theme="frost"],
 .theme-frost {
-  --bg-primary: #f8fbff;
-  --bg-secondary: #eff7ff;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-hover: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.9);
-  --bg-card-hover: #ffffff;
-  --border-subtle: rgba(14, 165, 233, 0.2);
-  --border-medium: rgba(2, 132, 199, 0.4);
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
+  --bg-primary: #030816;
+  --bg-secondary: #061226;
+  --surface: rgba(8, 24, 48, 0.75);
+  --surface-hover: rgba(14, 38, 74, 0.9);
+  --bg-card: rgba(8, 22, 46, 0.82);
+  --bg-card-hover: rgba(14, 36, 72, 0.92);
+  --border-subtle: rgba(14, 165, 233, 0.22);
+  --border-medium: rgba(56, 189, 248, 0.42);
+  --border-neon: rgba(56, 189, 248, 0.85);
+  --neon-primary: #0ea5e9;
+  --neon-secondary: #38bdf8;
+  --neon-accent: #0284c7;
+  --text-primary: #ffffff;
+  --text-secondary: #bae6fd;
+  --text-muted: #38bdf8aa;
   --accent-primary: #0284c7;
   --accent-violet: #0ea5e9;
-  --accent-violet-2: #2563eb;
-  --accent-cyan: #0284c7;
-  --accent-glow: rgba(14, 165, 233, 0.4);
-  --ambient-1: rgba(14, 165, 233, 0.12);
-  --ambient-2: rgba(37, 99, 235, 0.08);
+  --accent-violet-2: #38bdf8;
+  --accent-cyan: #38bdf8;
+  --accent-glow: rgba(14, 165, 233, 0.45);
+  --ambient-1: rgba(14, 165, 233, 0.15);
+  --ambient-2: rgba(56, 189, 248, 0.1);
   --btn-primary-start: #0284c7;
   --btn-primary-end: #0ea5e9;
   --button-gradient: linear-gradient(135deg, #0284c7, #0ea5e9);
-  --nav-bg: rgba(248, 251, 255, 0.92);
-  --footer-bg: rgba(239, 247, 255, 0.96);
-  --star-color: rgba(14, 165, 233, 0.45);
-  --dot-color: rgba(14, 165, 233, 0.2);
-  --badge-accent-bg: rgba(14, 165, 233, 0.15);
-  --badge-accent-color: #0284c7;
-  --badge-accent-border: rgba(14, 165, 233, 0.35);
-  --geo-stroke: #0ea5e9;
-  --accent-gold: #0284c7;
+  --nav-bg: rgba(3, 8, 22, 0.88);
+  --footer-bg: rgba(6, 18, 38, 0.92);
+  --star-color: rgba(186, 230, 253, 0.7);
+  --dot-color: rgba(56, 189, 248, 0.25);
+  --badge-accent-bg: rgba(14, 165, 233, 0.18);
+  --badge-accent-color: #38bdf8;
+  --badge-accent-border: rgba(56, 189, 248, 0.4);
+  --geo-stroke: #38bdf8;
+  --accent-gold: #7dd3fc;
 
-  /* Card Fill (Active / Highlighted) — Frosted Luminous Ice-Cyan Gradient */
-  --card-fill-bg: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.4), transparent 70%),
-                  linear-gradient(135deg, rgba(224, 242, 254, 0.96) 0%, rgba(186, 230, 253, 0.85) 50%, rgba(240, 249, 255, 0.96) 100%),
-                  #f0f9ff;
-  --card-fill-border: rgba(14, 165, 233, 0.85);
-  --card-fill-shadow: 0 0 25px rgba(56, 189, 248, 0.5), 0 0 50px rgba(14, 165, 233, 0.25), inset 0 0 20px rgba(56, 189, 248, 0.2);
-  --card-fill-title: #0f172a;
-  --card-fill-title-shadow: none;
-  --card-fill-subtitle: #0284c7;
-  --card-fill-text: #334155;
-  --card-fill-badge-bg: rgba(255, 255, 255, 0.92);
-  --card-fill-badge-border: rgba(2, 132, 199, 0.65);
-  --card-fill-badge-color: #0284c7;
+  /* Card Hover Variables */
+  --card-hover-bg: rgba(12, 34, 68, 0.95);
+  --card-hover-border: rgba(56, 189, 248, 0.88);
+  --card-hover-role-color: #7dd3fc;
+
+  /* Card Fill (Active / Highlighted) — Glacial Cyan Arctic Aura */
+  --card-fill-bg: radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.45), transparent 60%),
+                  linear-gradient(135deg, rgba(2, 132, 199, 0.38) 0%, rgba(14, 165, 233, 0.35) 45%, rgba(3, 105, 161, 0.55) 100%),
+                  #05142a;
+  --card-fill-border: rgba(56, 189, 248, 0.85);
+  --card-fill-shadow: 0 0 28px rgba(56, 189, 248, 0.45), 0 0 55px rgba(2, 132, 199, 0.35), inset 0 0 20px rgba(56, 189, 248, 0.16);
+  --card-fill-title: #ffffff;
+  --card-fill-title-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
+  --card-fill-subtitle: #38bdf8;
+  --card-fill-text: #e0f2fe;
+  --card-fill-badge-bg: rgba(4, 18, 36, 0.85);
+  --card-fill-badge-border: rgba(56, 189, 248, 0.8);
+  --card-fill-badge-color: #38bdf8;
   --card-highlight-bg: var(--card-fill-bg);
   --card-highlight-border: var(--card-fill-border);
   --card-highlight-shadow: var(--card-fill-shadow);
 
   /* Floating Preview Modal */
-  --preview-card-bg: rgba(255, 255, 255, 0.98);
-  --preview-card-border: rgba(14, 165, 233, 0.65);
-  --preview-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.15), 0 0 35px rgba(14, 165, 233, 0.3), 0 0 70px rgba(2, 132, 199, 0.15), inset 0 0 20px rgba(14, 165, 233, 0.08);
-  --preview-card-title: #0f172a;
-  --preview-card-subtitle: #0284c7;
+  --preview-card-bg: rgba(6, 18, 38, 0.96);
+  --preview-card-border: rgba(56, 189, 248, 0.7);
+  --preview-card-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.45), 0 0 70px rgba(2, 132, 199, 0.3), inset 0 0 20px rgba(56, 189, 248, 0.12);
+  --preview-card-title: #ffffff;
+  --preview-card-subtitle: #38bdf8;
 }
 
 /* ==========================================================================
@@ -279,17 +306,108 @@ footer,
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .card:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-medium);
+  background: var(--card-hover-bg, var(--bg-card-hover));
+  border-color: var(--card-hover-border, var(--border-medium));
 }
 
 [data-theme="frost"] .card,
 .theme-frost .card {
   box-shadow: 0 4px 20px rgba(2, 132, 199, 0.08);
+}
+
+/* ==========================================================================
+   LAUNCH HERO CARD & INAUGURATION DATE CARD HOVER EFFECTS
+   ========================================================================== */
+
+.launch-hero-card {
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease,
+              background-color 0.35s ease !important;
+}
+
+.launch-hero-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-neon) !important;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.55), 0 0 35px var(--border-neon) !important;
+}
+
+.inaugurated-date-card {
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+              background 0.35s ease,
+              border-color 0.35s ease,
+              box-shadow 0.35s ease !important;
+}
+
+.inaugurated-date-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  background: var(--card-hover-bg) !important;
+  border-color: var(--card-hover-border) !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65),
+              0 0 25px var(--card-hover-border),
+              0 0 45px var(--neon-primary) !important;
+}
+
+.inaugurated-label {
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.inaugurated-date-card:hover .inaugurated-label {
+  color: var(--card-hover-role-color) !important;
+  text-shadow: 0 0 12px var(--card-hover-role-color);
+}
+
+.inaugurated-date {
+  transition: text-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.inaugurated-date-card:hover .inaugurated-date {
+  text-shadow: 0 0 18px var(--neon-primary), 0 0 30px var(--card-hover-border);
+}
+
+.inaugurated-badge {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.inaugurated-date-card:hover .inaugurated-badge {
+  border-color: var(--border-neon) !important;
+  box-shadow: 0 0 12px var(--border-neon);
+  transform: translateY(-1px);
+}
+
+/* Guest Cards Hover */
+.inaug-guest-card {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.3s ease,
+              background-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.inaug-guest-card:hover {
+  transform: translateY(-3px);
+  background: var(--bg-card-hover) !important;
+  border-color: var(--border-neon) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 20px var(--border-neon) !important;
+}
+
+/* CWC Cards Hover */
+.cwc-card {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.3s ease,
+              background-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.cwc-card:hover {
+  transform: translateY(-3px);
+  background: var(--surface-hover) !important;
+  border-color: var(--border-neon) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 16px var(--border-neon) !important;
 }
 
 .nav-active {
@@ -403,6 +521,57 @@ footer,
 .geo-shape polyline,
 .geo-shape line {
   stroke: var(--geo-stroke) !important;
+}
+
+/* 3D Floating Geometric Wireframe Polyhedra */
+@keyframes floatGeoLeft {
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-14px) rotate(2deg) scale(1.02);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-1.5deg) scale(0.99);
+  }
+  75% {
+    transform: translateY(-20px) rotate(3deg) scale(1.03);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes floatGeoRight {
+  0% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  30% {
+    transform: translateY(-18px) rotate(-3deg) scale(1.03);
+  }
+  60% {
+    transform: translateY(-8px) rotate(2deg) scale(1.01);
+  }
+  85% {
+    transform: translateY(-22px) rotate(-1.5deg) scale(1.02);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+}
+
+.dynamic-geo-container {
+  will-change: transform;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+  transition: opacity 0.4s ease;
+}
+
+.dynamic-geo-float-left {
+  animation: floatGeoLeft 9s ease-in-out infinite;
+}
+
+.dynamic-geo-float-right {
+  animation: floatGeoRight 11s ease-in-out infinite;
 }
 
 /* Active / Highlighted Card Styles — fills inside with theme gradient */
@@ -642,9 +811,9 @@ body {
   .hero-container {
     padding: 2.5rem 1.25rem;
   }
-  .geo-shape {
-    opacity: 0.08 !important;
-    max-width: 15vw !important;
+  .geo-shape,
+  .dynamic-geo-container {
+    opacity: 0.18 !important;
   }
   .hero-logo-img {
     width: 180px;
@@ -689,7 +858,8 @@ body {
 }
 
 @media (max-width: 480px) {
-  .geo-shape {
+  .geo-shape,
+  .dynamic-geo-container {
     display: none !important;
   }
   .page-container {

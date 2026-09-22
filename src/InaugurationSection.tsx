@@ -7,8 +7,8 @@ const GUESTS = [
     org: 'Salesforce',
     role: 'Guest of Honor',
     label: 'Keynote Speaker',
-    labelColor: '#22d3ee',
-    borderColor: 'rgba(139, 92, 246, 0.5)',
+    labelColor: 'var(--neon-secondary)',
+    borderColor: 'var(--border-medium)',
   },
   {
     initials: 'SP',
@@ -16,8 +16,8 @@ const GUESTS = [
     org: 'Salesforce & SJEC Alumnus',
     role: 'Technical Mentor',
     label: 'Alumni Guide',
-    labelColor: '#22d3ee',
-    borderColor: 'rgba(139, 92, 246, 0.5)',
+    labelColor: 'var(--neon-secondary)',
+    borderColor: 'var(--border-medium)',
   },
   {
     initials: 'RD',
@@ -25,8 +25,8 @@ const GUESTS = [
     org: 'Principal, SJEC',
     role: 'Presidential Address',
     label: 'Patron',
-    labelColor: '#d4a84b',
-    borderColor: 'rgba(249, 115, 22, 0.5)',
+    labelColor: 'var(--accent-gold)',
+    borderColor: 'var(--border-neon)',
   },
   {
     initials: 'MD',
@@ -34,8 +34,8 @@ const GUESTS = [
     org: 'HOD, Computer Science & Engg',
     role: 'Program Chair',
     label: 'Department Head',
-    labelColor: '#a78bfa',
-    borderColor: 'rgba(139, 92, 246, 0.5)',
+    labelColor: 'var(--neon-primary)',
+    borderColor: 'var(--border-medium)',
   },
 ];
 
@@ -85,6 +85,30 @@ function NetworkCanvas() {
       }
     }
 
+    let particleColor = 'rgba(139,92,246,0.4)';
+    let lineColorBase = '139,92,246';
+
+    function updateThemeParticleColor() {
+      const computed = getComputedStyle(document.body);
+      const neon = computed.getPropertyValue('--neon-primary').trim();
+      if (neon.startsWith('#')) {
+        // convert hex to rgb
+        const hex = neon.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16) || 139;
+        const g = parseInt(hex.substring(2, 4), 16) || 92;
+        const b = parseInt(hex.substring(4, 6), 16) || 246;
+        lineColorBase = `${r},${g},${b}`;
+        particleColor = `rgba(${r},${g},${b},0.45)`;
+      } else if (neon) {
+        particleColor = neon;
+      }
+    }
+
+    updateThemeParticleColor();
+    const observer = new MutationObserver(updateThemeParticleColor);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
     function draw() {
       ctx!.clearRect(0, 0, w, h);
       for (let i = 0; i < particles.length; i++) {
@@ -98,7 +122,7 @@ function NetworkCanvas() {
 
         ctx!.beginPath();
         ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx!.fillStyle = 'rgba(139,92,246,0.35)';
+        ctx!.fillStyle = particleColor;
         ctx!.fill();
 
         for (let j = i + 1; j < particles.length; j++) {
@@ -110,7 +134,7 @@ function NetworkCanvas() {
             ctx!.beginPath();
             ctx!.moveTo(p.x, p.y);
             ctx!.lineTo(q.x, q.y);
-            ctx!.strokeStyle = `rgba(139,92,246,${0.12 * (1 - dist / MAX_DIST)})`;
+            ctx!.strokeStyle = `rgba(${lineColorBase},${0.18 * (1 - dist / MAX_DIST)})`;
             ctx!.lineWidth = 0.6;
             ctx!.stroke();
           }
@@ -125,6 +149,7 @@ function NetworkCanvas() {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
+      observer.disconnect();
     };
   }, []);
 
@@ -156,7 +181,7 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
           left: -80,
           width: 500,
           height: 500,
-          background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--ambient-1) 0%, transparent 70%)',
           pointerEvents: 'none',
           zIndex: 0,
         }}
@@ -234,7 +259,7 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
 
         {/* ── LAUNCH CARD ── */}
         <div
-          className="inaug-launch-card"
+          className="inaug-launch-card launch-hero-card"
           style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-subtle)',
@@ -289,7 +314,7 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
 
           {/* Right date card */}
           <div
-            className="inaug-date-card"
+            className="inaug-date-card inaugurated-date-card"
             style={{
               flexShrink: 0,
               width: 260,
@@ -306,6 +331,7 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
             }}
           >
             <span
+              className="inaugurated-label"
               style={{
                 fontSize: 10,
                 fontWeight: 700,
@@ -317,6 +343,7 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
               INAUGURATED ON
             </span>
             <span
+              className="inaugurated-date"
               style={{
                 fontFamily: "'Playfair Display', serif",
                 fontStyle: 'italic',
@@ -328,8 +355,8 @@ export default function InaugurationSection({ guests }: { guests?: typeof GUESTS
               August 25, 2025
             </span>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <span className="badge badge-orange">Academic Year 2025–2026</span>
-              <span className="badge badge-cyan">SJEC Campus</span>
+              <span className="badge badge-orange inaugurated-badge">Academic Year 2025–2026</span>
+              <span className="badge badge-cyan inaugurated-badge">SJEC Campus</span>
             </div>
           </div>
         </div>
