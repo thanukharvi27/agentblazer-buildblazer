@@ -13,6 +13,16 @@ export interface MembershipApplication {
   created_at: string;
 }
 
+interface EmailConfig {
+  service: string;
+  host: string;
+  port: number;
+  user: string;
+  hasPassword: boolean;
+  from: string;
+  isConfigured: boolean;
+}
+
 export function AdminApplications() {
   const { authFetch } = useAdminAuth();
   const [applications, setApplications] = useState<MembershipApplication[]>([]);
@@ -27,9 +37,46 @@ export function AdminApplications() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
 
+  // Email Config State
+  const [emailConfig, setEmailConfig] = useState<EmailConfig | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    service: 'gmail',
+    host: '',
+    port: 587,
+    user: '',
+    pass: '',
+    from: '',
+  });
+  const [testRecipient, setTestRecipient] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 4500);
+  };
+
+  const fetchEmailConfig = async () => {
+    try {
+      const res = await authFetch('/api/admin/email-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setEmailConfig(data);
+        setEmailForm({
+          service: data.service || 'gmail',
+          host: data.host || '',
+          port: data.port || 587,
+          user: data.user || '',
+          pass: '',
+          from: data.from || '',
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load email settings:', e);
+    }
   };
 
   const fetchApplications = async () => {
@@ -51,6 +98,7 @@ export function AdminApplications() {
 
   useEffect(() => {
     fetchApplications();
+    fetchEmailConfig();
   }, []);
 
   const handleStatusChange = async (id: number, newStatus: 'pending' | 'approved' | 'rejected') => {
@@ -69,10 +117,19 @@ export function AdminApplications() {
           setSelectedApp(updated);
         }
 
+        const isLive = emailConfig?.isConfigured;
         if (newStatus === 'approved') {
-          showToast(`Application APPROVED! Email notification dispatched to applicant.`);
+          showToast(
+            isLive
+              ? `Application APPROVED! Live email sent to applicant.`
+              : `Application APPROVED! (Logged in DB. Configure Email Setup for real inbox delivery.)`
+          );
         } else if (newStatus === 'rejected') {
-          showToast(`Application REJECTED. Email notification dispatched to applicant.`);
+          showToast(
+            isLive
+              ? `Application REJECTED. Live email sent to applicant.`
+              : `Application REJECTED. (Logged in DB. Configure Email Setup for real inbox delivery.)`
+          );
         } else {
           showToast(`Application moved back to PENDING review.`);
         }
@@ -99,7 +156,11 @@ export function AdminApplications() {
         if (selectedApp && selectedApp.id === id) {
           setSelectedApp(data.application);
         }
-        showToast('Notification email dispatched to applicant!');
+        showToast(
+          emailConfig?.isConfigured
+            ? 'Live notification email sent to applicant inbox!'
+            : 'Email notification logged in database. Set up SMTP for live inbox delivery.'
+        );
       } else {
         showToast(data.error || 'Failed to dispatch email', 'error');
       }
@@ -107,6 +168,48 @@ export function AdminApplications() {
       showToast('Network error dispatching email', 'error');
     } finally {
       setSendingEmailId(null);
+    }
+  };
+
+  const handleSaveEmailSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingEmail(true);
+      const res = await authFetch('/api/admin/email-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailForm),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailConfig(data.config);
+        showToast('Email sender settings saved successfully!');
+        setTestResult(null);
+      } else {
+        showToast(data.error || 'Failed to save email settings', 'error');
+      }
+    } catch (err) {
+      showToast('Network error saving email settings', 'error');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleTestEmailConnection = async () => {
+    try {
+      setTestingEmail(true);
+      setTestResult(null);
+      const res = await authFetch('/api/admin/email-settings/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testRecipient: testRecipient || emailForm.user }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+    } catch (err) {
+      setTestResult({ success: false, error: 'Network error communicating with server' });
+    } finally {
+      setTestingEmail(false);
     }
   };
 
@@ -226,7 +329,44 @@ export function AdminApplications() {
             Review, evaluate, and notify student applicants submitted through the public Join &amp; Connect portal.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* SMTP Status Pill */}
+          <div
+            onClick={() => setIsEmailModalOpen(true)}
+            style={{
+              cursor: 'pointer',
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              background: emailConfig?.isConfigured ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid',
+              borderColor: emailConfig?.isConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)',
+              color: emailConfig?.isConfigured ? '#34d399' : '#fbbf24',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            title="Click to configure sender email"
+          >
+            <span>{emailConfig?.isConfigured ? '●' : '⚠️'}</span>
+            <span>
+              {emailConfig?.isConfigured
+                ? `Sender: ${emailConfig.user}`
+                : 'Setup Sender Email'}
+            </span>
+          </div>
+
+          <button
+            className="adm-btn-secondary"
+            onClick={() => setIsEmailModalOpen(true)}
+            title="Configure SMTP sender credentials"
+          >
+            <span>⚙️</span>
+            <span>Email Setup</span>
+          </button>
+
           <button
             className="adm-btn-secondary"
             onClick={fetchApplications}
@@ -769,6 +909,11 @@ export function AdminApplications() {
                         {selectedApp.email_notified
                           ? `Notification logged & sent on ${formatDate(selectedApp.email_notified_at)}`
                           : 'Notification has not been sent yet.'}
+                        {!emailConfig?.isConfigured && (
+                          <span style={{ color: '#fbbf24', display: 'block', marginTop: 2 }}>
+                            ⚠️ Sender email is unconfigured; notification recorded in database only.
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -844,6 +989,216 @@ export function AdminApplications() {
                 Yes, Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Sender Setup Modal */}
+      {isEmailModalOpen && (
+        <div className="adm-modal-overlay" onClick={() => setIsEmailModalOpen(false)}>
+          <div className="adm-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="adm-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>⚙️</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Email Sender Configuration</h3>
+                  <div style={{ fontSize: 12, color: 'var(--adm-text-muted)' }}>
+                    Connect an email account to send real approval/rejection emails to applicants
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEmailModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--adm-text-muted)', fontSize: 18, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEmailSettings}>
+              <div className="adm-modal-body">
+                {/* Method selector */}
+                <div>
+                  <label className="adm-label">Mail Provider / Protocol:</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      type="button"
+                      className="adm-btn-secondary"
+                      style={{
+                        flex: 1,
+                        background: emailForm.service === 'gmail' ? 'rgba(56, 189, 248, 0.15)' : undefined,
+                        borderColor: emailForm.service === 'gmail' ? '#38bdf8' : undefined,
+                        color: emailForm.service === 'gmail' ? '#38bdf8' : undefined,
+                        fontWeight: 600,
+                      }}
+                      onClick={() => setEmailForm(prev => ({ ...prev, service: 'gmail', host: '', port: 587 }))}
+                    >
+                      Gmail (Recommended)
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn-secondary"
+                      style={{
+                        flex: 1,
+                        background: emailForm.service !== 'gmail' ? 'rgba(56, 189, 248, 0.15)' : undefined,
+                        borderColor: emailForm.service !== 'gmail' ? '#38bdf8' : undefined,
+                        color: emailForm.service !== 'gmail' ? '#38bdf8' : undefined,
+                        fontWeight: 600,
+                      }}
+                      onClick={() => setEmailForm(prev => ({ ...prev, service: '', host: prev.host || 'smtp.gmail.com', port: 587 }))}
+                    >
+                      Custom SMTP / SJEC Server
+                    </button>
+                  </div>
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className="adm-label">Sender Email Address:</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. agentblazer@sjec.ac.in or yourname@gmail.com"
+                    value={emailForm.user}
+                    onChange={e => setEmailForm(prev => ({ ...prev, user: e.target.value }))}
+                    className="adm-input"
+                  />
+                </div>
+
+                {/* App Password */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label className="adm-label" style={{ margin: 0 }}>
+                      App Password {emailConfig?.hasPassword ? '(Saved • Leave blank to keep)' : '(Required)'}:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(p => !p)}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: 11, cursor: 'pointer' }}
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={emailConfig?.hasPassword ? '••••••••••••••••' : 'Enter 16-character App Password'}
+                    value={emailForm.pass}
+                    onChange={e => setEmailForm(prev => ({ ...prev, pass: e.target.value }))}
+                    className="adm-input"
+                  />
+                </div>
+
+                {/* Custom host & port if not Gmail */}
+                {emailForm.service !== 'gmail' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                    <div>
+                      <label className="adm-label">SMTP Host:</label>
+                      <input
+                        type="text"
+                        placeholder="smtp.example.com"
+                        value={emailForm.host}
+                        onChange={e => setEmailForm(prev => ({ ...prev, host: e.target.value }))}
+                        className="adm-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="adm-label">Port:</label>
+                      <input
+                        type="number"
+                        placeholder="587"
+                        value={emailForm.port}
+                        onChange={e => setEmailForm(prev => ({ ...prev, port: Number(e.target.value) }))}
+                        className="adm-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* From Name Header */}
+                <div>
+                  <label className="adm-label">Display From Name (Optional):</label>
+                  <input
+                    type="text"
+                    placeholder='"AgentBlazer Club • SJEC CSE" <agentblazer@sjec.ac.in>'
+                    value={emailForm.from}
+                    onChange={e => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
+                    className="adm-input"
+                  />
+                </div>
+
+                {/* How to get Gmail App Password Instructions */}
+                <div
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    borderRadius: 10,
+                    padding: 14,
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    color: '#93c5fd',
+                  }}
+                >
+                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: 4 }}>
+                    💡 How to generate a Gmail App Password in 2 minutes:
+                  </strong>
+                  <ol style={{ margin: 0, paddingLeft: 18 }}>
+                    <li>Open your Google Account (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>myaccount.google.com/security</a>).</li>
+                    <li>Ensure <strong>2-Step Verification</strong> is enabled.</li>
+                    <li>Search for <strong>App passwords</strong> in the search bar.</li>
+                    <li>Name it <code>AgentBlazer</code>, copy the generated 16-character code, and paste it into the password box above.</li>
+                  </ol>
+                </div>
+
+                {/* Connection Test Section */}
+                <div style={{ borderTop: '1px solid var(--adm-border)', paddingTop: 14 }}>
+                  <label className="adm-label">Verify Connection / Send Test Email:</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <input
+                      type="email"
+                      placeholder="Recipient for test email (e.g. your email)"
+                      value={testRecipient}
+                      onChange={e => setTestRecipient(e.target.value)}
+                      className="adm-input"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="adm-btn-secondary"
+                      disabled={testingEmail || !emailConfig?.isConfigured && !emailForm.user}
+                      onClick={handleTestEmailConnection}
+                    >
+                      {testingEmail ? 'Testing...' : '🧪 Test SMTP'}
+                    </button>
+                  </div>
+
+                  {testResult && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: 10,
+                        borderRadius: 8,
+                        fontSize: 12,
+                        background: testResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid',
+                        borderColor: testResult.success ? '#10b981' : '#ef4444',
+                        color: testResult.success ? '#34d399' : '#f87171',
+                      }}
+                    >
+                      {testResult.success ? `✓ ${testResult.message}` : `✕ ${testResult.error}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="adm-modal-footer">
+                <button type="button" className="adm-btn-secondary" onClick={() => setIsEmailModalOpen(false)}>
+                  Close
+                </button>
+                <button type="submit" className="adm-btn-primary" disabled={savingEmail}>
+                  {savingEmail ? 'Saving...' : '💾 Save Settings'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
