@@ -8,6 +8,8 @@ export interface MembershipApplication {
   year: string;
   message?: string;
   status: 'pending' | 'approved' | 'rejected';
+  email_notified?: number;
+  email_notified_at?: string;
   created_at: string;
 }
 
@@ -19,14 +21,15 @@ export function AdminApplications() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Modals
+  // Modals & Action loading
   const [selectedApp, setSelectedApp] = useState<MembershipApplication | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
+    setTimeout(() => setToast(null), 4000);
   };
 
   const fetchApplications = async () => {
@@ -55,6 +58,7 @@ export function AdminApplications() {
       setUpdatingId(id);
       const res = await authFetch(`/api/admin/applications/${id}`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -64,7 +68,14 @@ export function AdminApplications() {
         if (selectedApp && selectedApp.id === id) {
           setSelectedApp(updated);
         }
-        showToast(`Application marked as ${newStatus.toUpperCase()}`);
+
+        if (newStatus === 'approved') {
+          showToast(`Application APPROVED! Email notification dispatched to applicant.`);
+        } else if (newStatus === 'rejected') {
+          showToast(`Application REJECTED. Email notification dispatched to applicant.`);
+        } else {
+          showToast(`Application moved back to PENDING review.`);
+        }
       } else {
         const err = await res.json();
         showToast(err.error || 'Failed to update status', 'error');
@@ -73,6 +84,29 @@ export function AdminApplications() {
       showToast('Network error updating application status', 'error');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleSendEmail = async (id: number) => {
+    try {
+      setSendingEmailId(id);
+      const res = await authFetch(`/api/admin/applications/${id}/send-email`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setApplications(prev => prev.map(a => (a.id === id ? data.application : a)));
+        if (selectedApp && selectedApp.id === id) {
+          setSelectedApp(data.application);
+        }
+        showToast('Notification email dispatched to applicant!');
+      } else {
+        showToast(data.error || 'Failed to dispatch email', 'error');
+      }
+    } catch (err) {
+      showToast('Network error dispatching email', 'error');
+    } finally {
+      setSendingEmailId(null);
     }
   };
 
@@ -115,7 +149,8 @@ export function AdminApplications() {
     });
   }, [applications, statusFilter, searchQuery]);
 
-  const formatDate = (isoStr: string) => {
+  const formatDate = (isoStr?: string) => {
+    if (!isoStr) return '';
     try {
       const date = new Date(isoStr);
       return date.toLocaleDateString('en-US', {
@@ -149,6 +184,19 @@ export function AdminApplications() {
     }
   };
 
+  const getMailtoLink = (app: MembershipApplication) => {
+    const isApproved = app.status === 'approved';
+    const subject = isApproved
+      ? '🎉 Congratulations! Your AgentBlazer Club Application is Approved'
+      : 'Update on your AgentBlazer Club Membership Application';
+
+    const body = isApproved
+      ? `Dear ${app.name} (${app.year}),\n\nWe are pleased to inform you that your application for membership in the AgentBlazer Club at St Joseph Engineering College (Dept of CSE) has been APPROVED!\n\nWelcome to the team! Our committee will reach out shortly with onboarding details, community group invite links, and upcoming meeting dates.\n\nWarm regards,\nAgentBlazer Club • Dept of CSE\nSt Joseph Engineering College, Mangaluru`
+      : `Dear ${app.name},\n\nThank you for your interest in joining the AgentBlazer Club at SJEC CSE.\n\nDue to high demand and limited spots for this cohort, we are unable to approve your application at this time. However, all our open workshops and seminars remain open to you!\n\nWarm regards,\nAgentBlazer Club • Dept of CSE\nSt Joseph Engineering College, Mangaluru`;
+
+    return `mailto:${app.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   return (
     <div>
       {/* Toast Notification */}
@@ -175,7 +223,7 @@ export function AdminApplications() {
             Membership Applications
           </h1>
           <p style={{ color: 'var(--adm-text-muted)', fontSize: 14, margin: 0 }}>
-            Manage and evaluate student applications submitted through the public Join &amp; Connect portal.
+            Review, evaluate, and notify student applicants submitted through the public Join &amp; Connect portal.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -401,12 +449,12 @@ export function AdminApplications() {
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th style={{ width: '25%' }}>Applicant</th>
-                  <th style={{ width: '15%' }}>Year of Study</th>
+                  <th style={{ width: '26%' }}>Applicant</th>
+                  <th style={{ width: '12%' }}>Year</th>
                   <th style={{ width: '15%' }}>Date Applied</th>
-                  <th style={{ width: '15%' }}>Status</th>
-                  <th style={{ width: '20%' }}>Statement Preview</th>
-                  <th style={{ width: '10%', textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '16%' }}>Status &amp; Notification</th>
+                  <th style={{ width: '18%' }}>Statement Preview</th>
+                  <th style={{ width: '13%', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -462,14 +510,23 @@ export function AdminApplications() {
                       {formatDate(app.created_at)}
                     </td>
 
-                    <td>{getStatusBadge(app.status)}</td>
+                    <td>
+                      <div>
+                        {getStatusBadge(app.status)}
+                        {app.status !== 'pending' && (
+                          <div style={{ fontSize: 11, color: app.email_notified ? '#38bdf8' : '#94a3b8', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span>{app.email_notified ? '✉️ Notified' : '⚠️ Pending Email'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
 
                     <td>
                       <div
                         style={{
                           color: 'var(--adm-text-muted)',
                           fontSize: 12,
-                          maxWidth: 240,
+                          maxWidth: 220,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -496,24 +553,36 @@ export function AdminApplications() {
                         {app.status !== 'approved' && (
                           <button
                             className="adm-btn-secondary"
-                            style={{ padding: '6px 8px', fontSize: 12, color: '#34d399', borderColor: 'rgba(16,185,129,0.3)' }}
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: 12,
+                              color: '#34d399',
+                              borderColor: 'rgba(16,185,129,0.3)',
+                              fontWeight: 700,
+                            }}
                             disabled={updatingId === app.id}
                             onClick={() => handleStatusChange(app.id, 'approved')}
-                            title="Approve applicant"
+                            title="Approve applicant & send email notification"
                           >
-                            ✓
+                            {updatingId === app.id ? '...' : '✓ Approve'}
                           </button>
                         )}
 
                         {app.status !== 'rejected' && (
                           <button
                             className="adm-btn-secondary"
-                            style={{ padding: '6px 8px', fontSize: 12, color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: 12,
+                              color: '#f87171',
+                              borderColor: 'rgba(239,68,68,0.3)',
+                              fontWeight: 700,
+                            }}
                             disabled={updatingId === app.id}
                             onClick={() => handleStatusChange(app.id, 'rejected')}
-                            title="Reject applicant"
+                            title="Reject applicant & send email notification"
                           >
-                            ✕
+                            {updatingId === app.id ? '...' : '✕ Reject'}
                           </button>
                         )}
 
@@ -538,7 +607,7 @@ export function AdminApplications() {
       {/* Application Details Modal */}
       {selectedApp && (
         <div className="adm-modal-overlay" onClick={() => setSelectedApp(null)}>
-          <div className="adm-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 580 }}>
+          <div className="adm-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
             <div className="adm-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>📝</span>
@@ -593,15 +662,22 @@ export function AdminApplications() {
                     </a>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-                    <span className="adm-badge adm-badge-blue">{selectedApp.year}</span>
+                    <span className="adm-badge adm-badge-blue">Year: {selectedApp.year}</span>
                     {getStatusBadge(selectedApp.status)}
                   </div>
                 </div>
               </div>
 
-              {/* Timestamp */}
-              <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', paddingLeft: 4 }}>
-                Submitted on: <strong style={{ color: 'var(--adm-text-muted)' }}>{formatDate(selectedApp.created_at)}</strong>
+              {/* Timestamps */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: 'var(--adm-text-dim)', paddingLeft: 4 }}>
+                <div>
+                  Submitted: <strong style={{ color: 'var(--adm-text-muted)' }}>{formatDate(selectedApp.created_at)}</strong>
+                </div>
+                {selectedApp.email_notified_at && (
+                  <div>
+                    Email Sent: <strong style={{ color: '#38bdf8' }}>{formatDate(selectedApp.email_notified_at)}</strong>
+                  </div>
+                )}
               </div>
 
               {/* Statement of Interest */}
@@ -616,7 +692,7 @@ export function AdminApplications() {
                     fontSize: 13,
                     lineHeight: 1.6,
                     color: selectedApp.message ? 'var(--adm-text-main)' : 'var(--adm-text-dim)',
-                    minHeight: 90,
+                    minHeight: 80,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                   }}
@@ -627,7 +703,7 @@ export function AdminApplications() {
 
               {/* Status Update Quick Toggles */}
               <div>
-                <label className="adm-label">Change Application Status:</label>
+                <label className="adm-label">Change Status &amp; Dispatch Notification:</label>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button
                     type="button"
@@ -655,7 +731,7 @@ export function AdminApplications() {
                     onClick={() => handleStatusChange(selectedApp.id, 'approved')}
                     disabled={updatingId === selectedApp.id}
                   >
-                    ✅ Approve
+                    {updatingId === selectedApp.id ? 'Updating...' : '✅ Approve & Notify'}
                   </button>
                   <button
                     type="button"
@@ -669,10 +745,56 @@ export function AdminApplications() {
                     onClick={() => handleStatusChange(selectedApp.id, 'rejected')}
                     disabled={updatingId === selectedApp.id}
                   >
-                    ❌ Reject
+                    {updatingId === selectedApp.id ? 'Updating...' : '❌ Reject & Notify'}
                   </button>
                 </div>
               </div>
+
+              {/* Email Notification Panel */}
+              {selectedApp.status !== 'pending' && (
+                <div
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.05)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    borderRadius: 10,
+                    padding: 14,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text-main)' }}>
+                        ✉️ Email Notification Status
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--adm-text-muted)', marginTop: 2 }}>
+                        {selectedApp.email_notified
+                          ? `Notification logged & sent on ${formatDate(selectedApp.email_notified_at)}`
+                          : 'Notification has not been sent yet.'}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="adm-btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: 12 }}
+                        disabled={sendingEmailId === selectedApp.id}
+                        onClick={() => handleSendEmail(selectedApp.id)}
+                      >
+                        {sendingEmailId === selectedApp.id ? 'Sending...' : '📨 Re-send Email'}
+                      </button>
+
+                      <a
+                        href={getMailtoLink(selectedApp)}
+                        className="adm-btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: 12, textDecoration: 'none' }}
+                        title="Open your system mail client with pre-filled subject and letter"
+                      >
+                        📬 Open in Mail App
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="adm-modal-footer">
