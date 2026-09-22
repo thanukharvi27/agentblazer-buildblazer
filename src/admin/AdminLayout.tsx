@@ -56,7 +56,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
         </div>
 
         {/* Navigation */}
-        <div style={{ padding: '16px 0', flex: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '16px 0', flex: 1 }}>
           <div style={{ padding: '0 24px 8px 24px', fontSize: 11, fontWeight: 700, color: 'var(--adm-text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Management
           </div>
