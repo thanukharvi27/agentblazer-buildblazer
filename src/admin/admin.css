@@ -147,8 +147,10 @@
 
 /* Dashboard Layout */
 .adm-layout {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   min-height: 100vh;
+  width: 100%;
 }
 
 .adm-sidebar {
@@ -159,6 +161,11 @@
   flex-direction: column;
   flex-shrink: 0;
   transition: transform 0.3s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 40;
 }
 
 .adm-content-wrapper {
@@ -166,12 +173,14 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: calc(100% - 260px);
   background: #090d16;
+  min-height: 100vh;
 }
 
 .adm-topbar {
-  height: 64px;
-  background: rgba(15, 23, 42, 0.7);
+  height: 60px;
+  background: rgba(15, 23, 42, 0.8);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--adm-border);
   padding: 0 24px;
@@ -181,14 +190,15 @@
   position: sticky;
   top: 0;
   z-index: 30;
+  flex-shrink: 0;
 }
 
 .adm-main-body {
-  padding: 28px;
+  padding: 24px 28px;
   flex: 1;
-  max-width: 1350px;
   width: 100%;
-  margin: 0 auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .adm-nav-item {
@@ -387,14 +397,21 @@
 }
 
 @media (max-width: 768px) {
+  .adm-layout {
+    flex-direction: column !important;
+  }
   .adm-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 50;
     transform: translateX(-100%);
+    height: 100vh;
   }
   .adm-sidebar.open {
     transform: translateX(0);
+  }
+  .adm-content-wrapper {
+    width: 100%;
   }
   .adm-main-body {
     padding: 16px;
