@@ -29,7 +29,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
       {/* Sidebar */}
       <aside className={`adm-sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* Brand */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--adm-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--adm-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           <div
             style={{
               width: 40,
@@ -56,7 +56,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
         </div>
 
         {/* Navigation */}
-        <div style={{ padding: '16px 0', flex: 1 }}>
+        <div className="adm-sidebar-nav" style={{ padding: '16px 0' }}>
           <div style={{ padding: '0 24px 8px 24px', fontSize: 11, fontWeight: 700, color: 'var(--adm-text-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Management
           </div>
@@ -94,7 +94,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
         </div>
 
         {/* User profile & quick action */}
-        <div style={{ padding: 16, borderTop: '1px solid var(--adm-border)', background: '#0b1120' }}>
+        <div className="adm-sidebar-footer" style={{ padding: 16, borderTop: '1px solid var(--adm-border)', background: '#0b1120' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <div
               style={{
@@ -129,6 +129,14 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
           </button>
         </div>
       </aside>
+
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="adm-sidebar-backdrop visible"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content Area */}
       <div className="adm-content-wrapper">
