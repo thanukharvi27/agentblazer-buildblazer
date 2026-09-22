@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useData } from './context/DataContext';
 import logoImg from './assets/AgentBlazer_Logo.png';
 import actualLogo from './assets/agentblazer_actual_logo.png';
 import IntroScreen from './IntroScreen';
@@ -34,7 +35,7 @@ const FALLBACK_EVENT_GALLERIES: Record<string, string[]> = {
   'Cyber Security & Career Pathways': CYBERSECURITY_IMAGES,
 };
 
-type Page = 'home' | 'about' | 'events' | 'join';
+type Page = 'home' | 'about' | 'events' | 'upcoming' | 'join';
 type Theme = 'violet' | 'inferno' | 'frost';
 
 const THEMES: { id: Theme; label: string; icon: string }[] = [
@@ -47,6 +48,7 @@ const NAV_LINKS: { id: Page; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'about', label: 'About Us' },
   { id: 'events', label: 'Events & Workshops' },
+  { id: 'upcoming', label: 'Upcoming Events' },
   { id: 'join', label: 'Join & Connect' },
 ];
 
@@ -910,6 +912,638 @@ function FloatingEventPreview({
   );
 }
 
+function UpcomingEventCard({
+  event,
+  onActivate,
+  onDeactivate,
+}: {
+  event: any;
+  onActivate: (el: HTMLElement) => void;
+  onDeactivate: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const images = event.gallery || event.hoverImages;
+  const hasImages = Array.isArray(images) && images.length > 0;
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseEnter={() => {
+        setHovered(true);
+        if (hasImages && cardRef.current) onActivate(cardRef.current);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+        if (hasImages) onDeactivate();
+      }}
+      className={`p-6 flex flex-col gap-4 rounded-xl transition-all duration-300 relative overflow-hidden ${
+        hovered ? 'card-active-theme' : 'card'
+      }`}
+      style={{
+        border: '1px solid rgba(16, 185, 129, 0.4)',
+        boxShadow: hovered
+          ? '0 0 30px rgba(16, 185, 129, 0.25), 0 8px 32px rgba(0,0,0,0.5)'
+          : '0 4px 24px rgba(0, 0, 0, 0.4)',
+      }}
+    >
+      {/* Top Status & Badge Bar */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            padding: '3px 10px',
+            borderRadius: 999,
+            background: 'rgba(16, 185, 129, 0.15)',
+            color: '#34d399',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)',
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+          UPCOMING EVENT
+        </span>
+        <span className={`badge ${event.badge_class || event.badgeClass || 'badge-violet'}`} style={{ fontSize: 9 }}>
+          {event.badge || 'WORKSHOP'}
+        </span>
+      </div>
+
+      {/* Date & Title */}
+      <div>
+        <div style={{ color: 'var(--accent-cyan)', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+          📅 {event.date}
+        </div>
+        <h3
+          className="font-bold text-lg leading-snug"
+          style={{ color: 'var(--text-primary)', margin: 0 }}
+        >
+          {event.title}
+        </h3>
+      </div>
+
+      {/* Schedule Time & Venue Card */}
+      {(event.time || event.venue) && (
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            fontSize: 12,
+          }}
+        >
+          {event.time && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 13 }}>⏰</span>
+              <span><strong>Schedule:</strong> {event.time}</span>
+            </div>
+          )}
+          {event.venue && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 13 }}>📍</span>
+              <span><strong>Venue:</strong> {event.venue}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Description */}
+      <p
+        style={{
+          color: 'var(--text-secondary)',
+          fontSize: 13,
+          lineHeight: 1.6,
+          margin: 0,
+          flex: 1,
+        }}
+      >
+        {event.description}
+      </p>
+
+      {/* Tracks */}
+      {event.tracks && Array.isArray(event.tracks) && event.tracks.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {event.tracks.map((t: string) => (
+            <span key={t} className="badge badge-violet" style={{ fontSize: 10 }}>
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Photo indicator note */}
+      {hasImages && (
+        <div style={{ fontSize: 11, color: '#34d399', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>🖼️</span>
+          <span>{images.length} photo(s) available • Hover to preview slideshow</span>
+        </div>
+      )}
+
+      {/* Action / RSVP Button */}
+      <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+        {event.registrationUrl ? (
+          <a
+            href={event.registrationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '11px 18px',
+              borderRadius: 10,
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: 13,
+              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+              border: '1px solid #10b981',
+              boxShadow: '0 0 16px rgba(16, 185, 129, 0.3)',
+            }}
+          >
+            <span>Register / RSVP</span>
+            <span>→</span>
+          </a>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '10px 16px',
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Registration Opening Soon
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UpcomingEventsPage({
+  events = [],
+  setPage,
+}: {
+  events?: any[];
+  setPage: (p: Page) => void;
+}) {
+  const dataContext = useData();
+  const allEvents = (dataContext.events && dataContext.events.length > 0) ? dataContext.events : events;
+  const upcomingEvents = allEvents.filter((ev) => Boolean(ev.isUpcoming));
+
+  const [activePreviewEvent, setActivePreviewEvent] = useState<{
+    title: string;
+    badge: string;
+    badgeClass: string;
+    description: string;
+    images: string[];
+  } | null>(null);
+  const [previewPos, setPreviewPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const eventCloseTimerRef = useRef<number | null>(null);
+
+  const handleActivate = (event: any, cardEl: HTMLElement) => {
+    const images = event.gallery || event.hoverImages;
+    if (!images || images.length === 0) return;
+    if (eventCloseTimerRef.current) {
+      clearTimeout(eventCloseTimerRef.current);
+      eventCloseTimerRef.current = null;
+    }
+
+    const isMobile = window.innerWidth < 768;
+    const PREVIEW_WIDTH = Math.min(340, window.innerWidth - 32);
+    const PREVIEW_HEIGHT = Math.min(480, window.innerHeight - 32);
+
+    let left: number;
+    let top: number;
+
+    if (isMobile) {
+      left = (window.innerWidth - PREVIEW_WIDTH) / 2;
+      top = (window.innerHeight - PREVIEW_HEIGHT) / 2;
+    } else {
+      const rect = cardEl.getBoundingClientRect();
+      left = rect.left + (rect.width - PREVIEW_WIDTH) / 2;
+      top = rect.top + (rect.height - PREVIEW_HEIGHT) / 2;
+
+      const margin = 16;
+      if (left < margin) left = margin;
+      if (left + PREVIEW_WIDTH > window.innerWidth - margin) {
+        left = window.innerWidth - PREVIEW_WIDTH - margin;
+      }
+      if (top < margin) top = margin;
+      if (top + PREVIEW_HEIGHT > window.innerHeight - margin) {
+        top = window.innerHeight - PREVIEW_HEIGHT - margin;
+      }
+    }
+
+    setPreviewPos({ left, top });
+    setActivePreviewEvent({
+      title: event.title,
+      badge: event.badge,
+      badgeClass: event.badge_class || event.badgeClass || 'badge-violet',
+      description: event.description,
+      images,
+    });
+    setIsPreviewOpen(true);
+  };
+
+  const handleDeactivate = () => {
+    eventCloseTimerRef.current = window.setTimeout(() => {
+      setIsPreviewOpen(false);
+      setTimeout(() => {
+        setActivePreviewEvent(null);
+      }, 320);
+    }, 120);
+  };
+
+  const cancelDeactivate = () => {
+    if (eventCloseTimerRef.current) {
+      clearTimeout(eventCloseTimerRef.current);
+      eventCloseTimerRef.current = null;
+    }
+  };
+
+  const forceClose = () => {
+    if (eventCloseTimerRef.current) {
+      clearTimeout(eventCloseTimerRef.current);
+      eventCloseTimerRef.current = null;
+    }
+    setIsPreviewOpen(false);
+    setTimeout(() => {
+      setActivePreviewEvent(null);
+    }, 320);
+  };
+
+  return (
+    <div className="relative min-h-screen">
+      <GeoShapeLeft />
+      <GeoShapeRight />
+
+      {/* Cyberpunk Ambient Glowing Orbs */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '6%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'min(720px, 90vw)',
+          height: 380,
+          background: 'radial-gradient(ellipse at center, rgba(16, 185, 129, 0.12) 0%, rgba(139, 92, 246, 0.08) 45%, transparent 70%)',
+          filter: 'blur(75px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: '32%',
+          right: '5%',
+          width: 320,
+          height: 320,
+          background: 'radial-gradient(circle, rgba(34, 211, 238, 0.09) 0%, transparent 70%)',
+          filter: 'blur(60px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      <div className="page-container relative z-10" style={{ paddingTop: '2.5rem', paddingBottom: '5rem' }}>
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          {/* Radar Scanner Badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 9,
+              padding: '6px 18px',
+              borderRadius: 999,
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              boxShadow: '0 0 24px rgba(16, 185, 129, 0.2)',
+              marginBottom: 20,
+            }}
+          >
+            <span
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 10,
+                height: 10,
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  background: '#34d399',
+                  animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                  opacity: 0.75,
+                }}
+              />
+              <span
+                style={{
+                  position: 'relative',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  boxShadow: '0 0 8px #10b981',
+                }}
+              />
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                color: '#34d399',
+                textTransform: 'uppercase',
+                fontFamily: 'monospace, "Courier New", monospace',
+              }}
+            >
+              {upcomingEvents.length === 0
+                ? '● RADAR SCAN ACTIVE (0 SCHEDULED)'
+                : `● RADAR SCAN ACTIVE (${upcomingEvents.length} SCHEDULED)`}
+            </span>
+          </div>
+
+          <h1 className="section-title font-black mb-4">
+            Upcoming Events <span className="accent-italic">&amp; Hackathons</span>
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 640, margin: '0 auto', lineHeight: 1.7, fontSize: 15 }}>
+            Real-time radar for scheduled competitive hackathons, hands-on masterclasses, and AI engineering workshops at SJEC.
+          </p>
+        </div>
+
+        {/* State 1: NO Upcoming Events */}
+        {upcomingEvents.length === 0 ? (
+          <div style={{ maxWidth: 860, margin: '0 auto' }}>
+            {/* Empty State Hero Card */}
+            <div
+              className="card relative overflow-hidden"
+              style={{
+                padding: '48px 32px',
+                textAlign: 'center',
+                background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(14, 10, 26, 0.85) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.28)',
+                boxShadow: '0 0 40px rgba(16, 185, 129, 0.08), inset 0 0 30px rgba(16, 185, 129, 0.03)',
+                borderRadius: 20,
+                marginBottom: 50,
+              }}
+            >
+              {/* Radar Scanner Visual Icon */}
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  margin: '0 auto 24px',
+                  background: 'radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.02) 70%)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  boxShadow: '0 0 25px rgba(16, 185, 129, 0.25)',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 6,
+                    borderRadius: '50%',
+                    border: '1px dashed rgba(16, 185, 129, 0.35)',
+                  }}
+                />
+                <span style={{ fontSize: 32 }}>📡</span>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                  marginBottom: 12,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                No Events Currently Scheduled
+              </h2>
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  maxWidth: 580,
+                  margin: '0 auto 28px',
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                }}
+              >
+                We are actively curating the next wave of hands-on workshops, agentic AI challenges, and hackathons. Announcements drop here first as dates and venue registrations finalize.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <button
+                  className="btn-primary"
+                  onClick={() => setPage('events')}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 12,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>Explore Past Workshops</span>
+                  <span>→</span>
+                </button>
+                <button
+                  className="btn-outline"
+                  onClick={() => setPage('join')}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: 12,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>Join &amp; Get Notified</span>
+                  <span>🔔</span>
+                </button>
+              </div>
+            </div>
+
+            {/* What To Expect Next Section */}
+            <div>
+              <div className="text-center mb-8">
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: '0.12em',
+                    color: 'var(--accent-cyan)',
+                    textTransform: 'uppercase',
+                    marginBottom: 6,
+                  }}
+                >
+                  ROADMAP &amp; PIPELINE
+                </div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>
+                  What To Expect Next
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Preview Card 1 */}
+                <div
+                  className="card"
+                  style={{
+                    padding: 24,
+                    borderRadius: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontSize: 28 }}>🤖</span>
+                    <span className="badge badge-violet" style={{ fontSize: 9, fontWeight: 700 }}>
+                      PIPELINE LABS
+                    </span>
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Hands-on Agent Labs
+                  </h4>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0, flex: 1 }}>
+                    Interactive coding masterclasses building autonomous agent graphs, LangChain orchestration, tool-calling pipelines, and local LLM execution.
+                  </p>
+                  <div style={{ fontSize: 11, color: 'var(--accent-cyan)', fontWeight: 600, marginTop: 4 }}>
+                    • Code Sandboxes &amp; Repos Provided
+                  </div>
+                </div>
+
+                {/* Preview Card 2 */}
+                <div
+                  className="card"
+                  style={{
+                    padding: 24,
+                    borderRadius: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontSize: 28 }}>⚡</span>
+                    <span className="badge badge-orange" style={{ fontSize: 9, fontWeight: 700 }}>
+                      24-HR HACKATHONS
+                    </span>
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    AI Hackathons
+                  </h4>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0, flex: 1 }}>
+                    Rapid collegiate sprint hackathons with live test evaluation, real-world customer problem statements, algorithmic rankings, and cash bounties.
+                  </p>
+                  <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginTop: 4 }}>
+                    • Automated Evaluation Suites
+                  </div>
+                </div>
+
+                {/* Preview Card 3 */}
+                <div
+                  className="card"
+                  style={{
+                    padding: 24,
+                    borderRadius: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontSize: 28 }}>🎓</span>
+                    <span className="badge badge-cyan" style={{ fontSize: 9, fontWeight: 700 }}>
+                      COMMUNITY MENTORSHIP
+                    </span>
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    Industry Mentorship
+                  </h4>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0, flex: 1 }}>
+                    Direct architectural guidance, open-source portfolio audits, and career pathways from Salesforce Trailblazers, faculty researchers, and industry guests.
+                  </p>
+                  <div style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600, marginTop: 4 }}>
+                    • 1-on-1 Feedback &amp; Review
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* State 2: Upcoming Events DO Exist */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {upcomingEvents.map((ev, i) => (
+              <UpcomingEventCard
+                key={ev.id || i}
+                event={ev}
+                onActivate={(el) => handleActivate(ev, el)}
+                onDeactivate={handleDeactivate}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Floating Gallery Preview if hovered on event with photos */}
+      <FloatingEventPreview
+        event={activePreviewEvent}
+        position={previewPos}
+        isOpen={isPreviewOpen}
+        onMouseEnter={cancelDeactivate}
+        onMouseLeave={handleDeactivate}
+        onClose={forceClose}
+      />
+
+      <Footer setPage={setPage} />
+    </div>
+  );
+}
+
 const CORE_WORKING_COMMITTEE = [
   {
     initials: 'PR',
@@ -1658,6 +2292,7 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
           {[
             { label: 'About & Charter', page: 'about' },
             { label: 'Workshops & Contests', page: 'events' },
+            { label: 'Upcoming Events', page: 'upcoming' },
             { label: 'Salesforce Trailhead Community', page: null },
           ].map(l => (
             <div key={l.label} style={{ marginBottom: 8 }}>
@@ -1748,6 +2383,10 @@ export default function App() {
               tracks: e.tracks || null,
               leads: e.leads || null,
               platform: e.platform || null,
+              isUpcoming: Boolean(e.isUpcoming || e.is_upcoming),
+              venue: e.venue || null,
+              time: e.time || null,
+              registrationUrl: e.registrationUrl || e.registration_url || null,
               hoverImages,
             };
           });
@@ -1824,6 +2463,7 @@ export default function App() {
         {page === 'home' && <HomePage setPage={setPage} />}
         {page === 'about' && <AboutPage faculty={publicFaculty} team={publicTeam} cwc={publicCwc} guests={publicGuests} />}
         {page === 'events' && <EventsPage events={publicEvents} />}
+        {page === 'upcoming' && <UpcomingEventsPage events={publicEvents} setPage={setPage} />}
         {page === 'join' && <JoinPage setPage={setPage} />}
       </main>
     </div>

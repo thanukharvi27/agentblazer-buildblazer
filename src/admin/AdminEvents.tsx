@@ -16,6 +16,10 @@ export interface EventItem {
   gallery: string[];
   display_order: number;
   active: number;
+  isUpcoming?: boolean;
+  venue?: string;
+  time?: string;
+  registrationUrl?: string;
 }
 
 const BADGE_OPTIONS = [
@@ -27,7 +31,7 @@ const BADGE_OPTIONS = [
   { value: 'badge-blue', label: 'Blue (Developer Lab)' },
 ];
 
-export function AdminEvents() {
+export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
   const { authFetch } = useAdminAuth();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +46,13 @@ export function AdminEvents() {
   const [form, setForm] = useState({
     title: '',
     date: '',
+    time: '',
     badge: 'WORKSHOP',
     badge_class: 'badge-violet',
     description: '',
+    isUpcoming: false,
+    venue: '',
+    registrationUrl: '',
     meta: '',
     tracksString: '',
     leads: '',
@@ -87,9 +95,13 @@ export function AdminEvents() {
     setForm({
       title: '',
       date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      badge: 'LIVE WORKSHOP',
+      time: '10:00 AM – 1:00 PM IST',
+      badge: 'UPCOMING WORKSHOP',
       badge_class: 'badge-violet',
       description: '',
+      isUpcoming: true,
+      venue: 'CSE Seminar Hall, 3rd Floor',
+      registrationUrl: '',
       meta: '',
       tracksString: '',
       leads: '',
@@ -107,9 +119,13 @@ export function AdminEvents() {
     setForm({
       title: event.title,
       date: event.date,
+      time: event.time || '',
       badge: event.badge,
       badge_class: event.badge_class,
       description: event.description,
+      isUpcoming: Boolean(event.isUpcoming),
+      venue: event.venue || '',
+      registrationUrl: event.registrationUrl || '',
       meta: event.meta || '',
       tracksString: Array.isArray(event.tracks) ? event.tracks.join(', ') : '',
       leads: event.leads || '',
@@ -174,6 +190,10 @@ export function AdminEvents() {
     const payload = {
       title: form.title,
       date: form.date,
+      time: form.time || null,
+      venue: form.venue || null,
+      isUpcoming: form.isUpcoming,
+      registrationUrl: form.registrationUrl || null,
       badge: form.badge,
       badge_class: form.badge_class,
       description: form.description,
@@ -245,10 +265,29 @@ export function AdminEvents() {
             Manage masterclasses, hackathons, and symposiums. Upload multiple photos to power the public hover slideshow!
           </p>
         </div>
-        <button className="adm-btn-primary" onClick={openCreateModal}>
-          <span>+</span>
-          <span>Add New Workshop / Event</span>
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {setTab && (
+            <button
+              className="adm-btn-primary"
+              onClick={() => setTab('create-event')}
+              style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                borderColor: '#10b981',
+                boxShadow: '0 0 16px rgba(16, 185, 129, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 15 }}>➕</span>
+              <span>Create New Event</span>
+              <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.22)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>+New</span>
+            </button>
+          )}
+          <button className="adm-btn-secondary" onClick={openCreateModal}>
+            <span>+ Quick Add Dialog</span>
+          </button>
+        </div>
       </div>
 
       {/* Events Table */}
@@ -259,7 +298,7 @@ export function AdminEvents() {
           </div>
         ) : events.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--adm-text-muted)' }}>
-            No events found. Click "Add New Workshop / Event" to publish one.
+            No events found. Click "Create New Event" to publish one.
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -267,7 +306,7 @@ export function AdminEvents() {
               <thead>
                 <tr>
                   <th style={{ width: 60 }}>Order</th>
-                  <th>Event Title &amp; Date</th>
+                  <th>Event Title &amp; Details</th>
                   <th>Badge Category</th>
                   <th>Gallery Slideshow</th>
                   <th>Status</th>
@@ -279,8 +318,35 @@ export function AdminEvents() {
                   <tr key={ev.id}>
                     <td style={{ fontWeight: 700, color: 'var(--adm-text-dim)' }}>#{ev.display_order}</td>
                     <td>
-                      <div style={{ fontWeight: 600, color: 'var(--adm-text-main)', fontSize: 14 }}>{ev.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 2 }}>{ev.date}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--adm-text-main)', fontSize: 14 }}>{ev.title}</span>
+                        {Boolean(ev.isUpcoming) && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              letterSpacing: '0.05em',
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: '#34d399',
+                              border: '1px solid rgba(16, 185, 129, 0.4)',
+                              boxShadow: '0 0 10px rgba(16, 185, 129, 0.25)',
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', display: 'inline-block' }}></span>
+                            UPCOMING
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <span>📅 {ev.date}</span>
+                        {ev.time && <span>⏰ {ev.time}</span>}
+                        {ev.venue && <span>📍 {ev.venue}</span>}
+                      </div>
                     </td>
                     <td>
                       <span className={`badge ${ev.badge_class || 'badge-violet'}`} style={{ fontSize: 10 }}>
@@ -451,6 +517,75 @@ export function AdminEvents() {
                     placeholder="Provide a compelling technical summary of topics, hands-on labs, and objectives..."
                     required
                   />
+                </div>
+
+                {/* Mark as Upcoming Event Toggle */}
+                <div style={{ background: form.isUpcoming ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)', border: `1px solid ${form.isUpcoming ? 'rgba(16, 185, 129, 0.3)' : 'var(--adm-border)'}`, borderRadius: 10, padding: '14px 16px', margin: '14px 0', transition: 'all 0.2s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: form.isUpcoming ? '#34d399' : 'var(--adm-text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>🚀 Mark as Upcoming Event</span>
+                        {form.isUpcoming && <span style={{ fontSize: 10, background: '#10b981', color: '#000', padding: '1px 6px', borderRadius: 4, fontWeight: 800 }}>ACTIVE</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--adm-text-muted)', marginTop: 2 }}>
+                        When enabled, this event will appear in the public "Upcoming Events" radar scanner page.
+                      </div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.isUpcoming}
+                        onChange={(e) => setForm({ ...form, isUpcoming: e.target.checked })}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        background: form.isUpcoming ? '#10b981' : '#334155',
+                        borderRadius: 24, transition: '0.2s',
+                      }}>
+                        <span style={{
+                          position: 'absolute', content: '""', height: 18, width: 18,
+                          left: form.isUpcoming ? 22 : 3, bottom: 3,
+                          background: 'white', borderRadius: '50%', transition: '0.2s'
+                        }}></span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {form.isUpcoming && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <div>
+                        <label className="adm-label">Venue / Physical Location *</label>
+                        <input
+                          type="text"
+                          className="adm-input"
+                          value={form.venue}
+                          onChange={(e) => setForm({ ...form, venue: e.target.value })}
+                          placeholder="e.g. CSE Seminar Hall, 3rd Floor"
+                        />
+                      </div>
+                      <div>
+                        <label className="adm-label">Schedule / Time *</label>
+                        <input
+                          type="text"
+                          className="adm-input"
+                          value={form.time}
+                          onChange={(e) => setForm({ ...form, time: e.target.value })}
+                          placeholder="e.g. 10:00 AM – 1:00 PM IST"
+                        />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label className="adm-label">Registration / RSVP Link URL</label>
+                        <input
+                          type="url"
+                          className="adm-input"
+                          value={form.registrationUrl}
+                          onChange={(e) => setForm({ ...form, registrationUrl: e.target.value })}
+                          placeholder="https://forms.gle/... or https://lu.ma/..."
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tracks & Meta */}

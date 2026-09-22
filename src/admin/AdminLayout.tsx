@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import actualLogo from '../assets/agentblazer_actual_logo.png';
 
-export type AdminTab = 'dashboard' | 'applications' | 'about' | 'members' | 'events' | 'media';
+export type AdminTab = 'dashboard' | 'applications' | 'create-event' | 'events' | 'about' | 'members' | 'media';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -14,12 +14,13 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
   const { user, logout } = useAdminAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navItems: { id: AdminTab; label: string; icon: string }[] = [
+  const navItems: { id: AdminTab; label: string; icon: string; badge?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'create-event', label: 'Create New Event', icon: '➕', badge: '+New' },
+    { id: 'events', label: 'Events & Workshops', icon: '🗓️' },
     { id: 'applications', label: 'Membership Applications', icon: '📝' },
     { id: 'about', label: 'About Us Management', icon: '🏛️' },
     { id: 'members', label: 'Members Management', icon: '👥' },
-    { id: 'events', label: 'Events & Workshops', icon: '🗓️' },
     { id: 'media', label: 'Media & Image Library', icon: '🖼️' },
   ];
 
@@ -67,9 +68,27 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
                 setSidebarOpen(false);
               }}
               className={`adm-nav-item ${currentTab === item.id ? 'active' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
             >
-              <span style={{ fontSize: 16 }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                <span>{item.label}</span>
+              </div>
+              {item.badge && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#ffffff',
+                    padding: '2px 7px',
+                    borderRadius: 12,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {item.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>

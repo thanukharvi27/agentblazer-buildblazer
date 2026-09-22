@@ -131,6 +131,10 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
       <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0' }}>Quick Actions</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <button className="adm-btn-primary" onClick={() => setTab('create-event')} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+            <span>➕</span>
+            <span>Create New Event (+New)</span>
+          </button>
           <button className="adm-btn-primary" onClick={() => setTab('applications')} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
             <span>📝</span>
             <span>Review Applications {(stats?.pendingApplications ?? 0) > 0 ? `(${stats?.pendingApplications} New)` : ''}</span>
@@ -140,8 +144,8 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
             <span>Manage &amp; Add Members</span>
           </button>
           <button className="adm-btn-primary" onClick={() => setTab('events')} style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)' }}>
-            <span>+</span>
-            <span>Manage &amp; Add Events</span>
+            <span>🗓️</span>
+            <span>Events &amp; Workshops List</span>
           </button>
           <button className="adm-btn-secondary" onClick={() => setTab('media')}>
             <span>📁</span>

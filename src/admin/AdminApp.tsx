@@ -9,6 +9,7 @@ import { AdminEvents } from './AdminEvents';
 import { AdminAboutUs } from './AdminAboutUs';
 import { AdminMedia } from './AdminMedia';
 import { AdminApplications } from './AdminApplications';
+import { AdminCreateEvent } from './AdminCreateEvent';
 
 function AdminContent() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -32,10 +33,11 @@ function AdminContent() {
   return (
     <AdminLayout currentTab={currentTab} setTab={setTab}>
       {currentTab === 'dashboard' && <AdminDashboard setTab={setTab} />}
+      {currentTab === 'create-event' && <AdminCreateEvent setTab={setTab} />}
       {currentTab === 'applications' && <AdminApplications />}
       {currentTab === 'about' && <AdminAboutUs />}
       {currentTab === 'members' && <AdminMembers />}
-      {currentTab === 'events' && <AdminEvents />}
+      {currentTab === 'events' && <AdminEvents setTab={setTab} />}
       {currentTab === 'media' && <AdminMedia />}
     </AdminLayout>
   );
