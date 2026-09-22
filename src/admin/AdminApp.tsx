@@ -8,6 +8,7 @@ import { AdminMembers } from './AdminMembers';
 import { AdminEvents } from './AdminEvents';
 import { AdminAboutUs } from './AdminAboutUs';
 import { AdminMedia } from './AdminMedia';
+import { AdminApplications } from './AdminApplications';
 
 function AdminContent() {
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -31,6 +32,7 @@ function AdminContent() {
   return (
     <AdminLayout currentTab={currentTab} setTab={setTab}>
       {currentTab === 'dashboard' && <AdminDashboard setTab={setTab} />}
+      {currentTab === 'applications' && <AdminApplications />}
       {currentTab === 'about' && <AdminAboutUs />}
       {currentTab === 'members' && <AdminMembers />}
       {currentTab === 'events' && <AdminEvents />}

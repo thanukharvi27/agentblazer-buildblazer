@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import actualLogo from '../assets/agentblazer_actual_logo.png';
 
-export type AdminTab = 'dashboard' | 'about' | 'members' | 'events' | 'media';
+export type AdminTab = 'dashboard' | 'applications' | 'about' | 'members' | 'events' | 'media';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -16,6 +16,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
 
   const navItems: { id: AdminTab; label: string; icon: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'applications', label: 'Membership Applications', icon: '📝' },
     { id: 'about', label: 'About Us Management', icon: '🏛️' },
     { id: 'members', label: 'Members Management', icon: '👥' },
     { id: 'events', label: 'Events & Workshops', icon: '🗓️' },

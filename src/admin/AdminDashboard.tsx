@@ -7,6 +7,8 @@ interface Stats {
   totalEvents: number;
   totalMedia: number;
   totalGuests: number;
+  totalApplications?: number;
+  pendingApplications?: number;
 }
 
 export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) {
@@ -39,13 +41,36 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
           Overview &amp; Content Status
         </h1>
         <p style={{ color: 'var(--adm-text-muted)', fontSize: 14, margin: 0 }}>
-          Manage your club members, workshop masterclasses, galleries, and public announcements.
+          Manage your club members, membership applications, workshop masterclasses, galleries, and public announcements.
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="adm-stats-grid">
-        <div className="adm-stat-card">
+        <div
+          className="adm-stat-card"
+          onClick={() => setTab('applications')}
+          style={{ cursor: 'pointer', transition: 'border-color 0.2s', border: stats?.pendingApplications ? '1px solid rgba(245, 158, 11, 0.4)' : undefined }}
+        >
+          <div className="adm-stat-icon" style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee' }}>
+            📝
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', fontWeight: 600, textTransform: 'uppercase' }}>
+              Membership Applications
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{loading ? '...' : stats?.totalApplications ?? 0}</span>
+              {(stats?.pendingApplications ?? 0) > 0 && (
+                <span className="adm-badge adm-badge-orange" style={{ fontSize: 11 }}>
+                  {stats?.pendingApplications} pending
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="adm-stat-card" onClick={() => setTab('members')} style={{ cursor: 'pointer' }}>
           <div className="adm-stat-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
             👥
           </div>
@@ -59,7 +84,7 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
           </div>
         </div>
 
-        <div className="adm-stat-card">
+        <div className="adm-stat-card" onClick={() => setTab('events')} style={{ cursor: 'pointer' }}>
           <div className="adm-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
             🗓️
           </div>
@@ -87,7 +112,7 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
           </div>
         </div>
 
-        <div className="adm-stat-card">
+        <div className="adm-stat-card" onClick={() => setTab('media')} style={{ cursor: 'pointer' }}>
           <div className="adm-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
             🖼️
           </div>
@@ -106,6 +131,10 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
       <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0' }}>Quick Actions</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <button className="adm-btn-primary" onClick={() => setTab('applications')} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
+            <span>📝</span>
+            <span>Review Applications {(stats?.pendingApplications ?? 0) > 0 ? `(${stats?.pendingApplications} New)` : ''}</span>
+          </button>
           <button className="adm-btn-primary" onClick={() => setTab('members')}>
             <span>+</span>
             <span>Manage &amp; Add Members</span>

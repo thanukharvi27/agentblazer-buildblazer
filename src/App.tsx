@@ -1480,6 +1480,30 @@ function TeamCard({
 function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
   const [form, setForm] = useState({ name: '', email: '', year: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/membership-applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit application.');
+      }
+      setSubmitted(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -1535,10 +1559,27 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
             <div className="text-center py-8">
               <div className="text-4xl mb-4">✅</div>
               <div className="font-semibold text-lg mb-2">Application Submitted!</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>We'll reach out to you at your email shortly.</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>
+                Thank you for applying, {form.name}! We'll review your details and reach out to you at {form.email} shortly.
+              </div>
+              <button
+                type="button"
+                className="btn-outline px-5 py-2.5 rounded-xl text-xs font-semibold"
+                onClick={() => {
+                  setSubmitted(false);
+                  setForm({ name: '', email: '', year: '', message: '' });
+                }}
+              >
+                Submit Another Application
+              </button>
             </div>
           ) : (
-            <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); setSubmitted(true); }}>
+            <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+              {errorMsg && (
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', fontSize: 13 }}>
+                  ⚠️ {errorMsg}
+                </div>
+              )}
               {[
                 { key: 'name', label: 'Full Name', placeholder: 'Your full name', type: 'text' },
                 { key: 'email', label: 'College Email', placeholder: 'you@sjec.ac.in', type: 'email' },
@@ -1574,8 +1615,19 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
                   }}
                 />
               </div>
-              <button type="submit" className="btn-primary w-full py-3 rounded-xl text-sm font-semibold mt-2">
-                Submit Application
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-primary w-full py-3 rounded-xl text-sm font-semibold mt-2 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <span className="inline-block animate-spin">⟳</span>
+                    <span>Submitting Application...</span>
+                  </>
+                ) : (
+                  'Submit Application'
+                )}
               </button>
             </form>
           )}
