@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import logoImg from './assets/AgentBlazer_Logo.png';
+import actualLogo from './assets/agentblazer_actual_logo.png';
 import IntroScreen from './IntroScreen';
 import ThemeCursor from './ThemeCursor';
 import InaugurationSection from './InaugurationSection';
@@ -230,8 +231,10 @@ function Navbar({ page, setPage, theme, setTheme }: {
           className="flex items-center gap-3 cursor-pointer select-none"
           onClick={() => { setPage('home'); setMobileMenuOpen(false); }}
         >
-          <div style={{ background: 'var(--ambient-1)', border: '1px solid var(--border-medium)' }}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-sm flex-shrink-0">⬡</div>
+          <div style={{ background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', boxShadow: '0 0 12px var(--ambient-1)' }}
+            className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+            <img src={actualLogo} alt="AgentBlazer Logo" className="w-full h-full object-contain" />
+          </div>
           <div className="min-w-0">
             <div className="flex items-baseline gap-1">
               <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Agent</span>
@@ -1483,8 +1486,10 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
       <GeoShapeLeft />
       <GeoShapeRight />
       <div className="page-container relative z-10 flex-1 flex flex-col items-center justify-center">
-        <div style={{ width: 56, height: 56, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 14 }}
-          className="flex items-center justify-center text-2xl mb-6">⬡</div>
+        <div style={{ width: 64, height: 64, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 16, boxShadow: '0 0 20px var(--ambient-1)' }}
+          className="flex items-center justify-center mb-6 overflow-hidden p-1.5">
+          <img src={actualLogo} alt="AgentBlazer Logo" className="w-full h-full object-contain" />
+        </div>
 
         <div className="pill-badge mb-6" style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(34,211,238,0.3)' }}>
           Membership Intake • Academic Year 2025–2026
@@ -1588,8 +1593,10 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12" style={{ maxWidth: 1400, margin: '0 auto' }}>
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <div style={{ width: 36, height: 36, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 8 }}
-              className="flex items-center justify-center text-sm">⬡</div>
+            <div style={{ width: 38, height: 38, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 10, boxShadow: '0 0 12px var(--ambient-1)' }}
+              className="flex items-center justify-center overflow-hidden flex-shrink-0 p-1">
+              <img src={actualLogo} alt="AgentBlazer Logo" className="w-full h-full object-contain" />
+            </div>
             <span className="font-bold">AgentBlazer Club</span>
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Department of Computer Science &amp; Engineering</div>

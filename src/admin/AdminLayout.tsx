@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
+import actualLogo from '../assets/agentblazer_actual_logo.png';
 
 export type AdminTab = 'dashboard' | 'about' | 'members' | 'events' | 'media';
 
@@ -29,19 +30,20 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--adm-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+              background: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: 18,
-              color: '#ffffff',
+              overflow: 'hidden',
+              padding: '2px',
+              flexShrink: 0,
             }}
           >
-            ⬡
+            <img src={actualLogo} alt="AgentBlazer Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.01em' }}>AgentBlazer</div>
