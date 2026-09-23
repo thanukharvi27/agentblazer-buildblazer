@@ -1,0 +1,766 @@
+import express from 'express';
+import cors from 'cors';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import multer from 'multer';
+import { db } from './database.js';
+import { verifyPassword, createSession, invalidateSession, requireAdminAuth } from './auth.js';
+import { sendApplicationStatusEmail, getEmailConfig, saveEmailConfig, testEmailConnection } from './emailService.js';
+import { connectMongo, saveApprovedMember, removeApprovedMember, getApprovedMembers, isMongoConnected } from './mongoService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Uploads directory
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, safeName);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, PNG, WEBP, GIF, and SVG images are allowed'));
+    }
+  },
+});
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
+
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username/Email and Password are required.' });
+  }
+
+  const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username.trim().toLowerCase());
+  if (!admin) {
+    return res.status(401).json({ error: 'Invalid credentials.' });
+  }
+
+  const valid = verifyPassword(password, admin.password_hash, admin.salt);
+  if (!valid) {
+    return res.status(401).json({ error: 'Invalid credentials.' });
+  }
+
+  const session = createSession(admin.id, admin.username);
+  res.json({
+    token: session.token,
+    user: { id: admin.id, username: admin.username },
+    expiresAt: session.expiresAt,
+  });
+});
+
+app.post('/api/auth/logout', requireAdminAuth, (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '').trim();
+  if (token) invalidateSession(token);
+  res.json({ success: true });
+});
+
+app.get('/api/auth/me', requireAdminAuth, (req, res) => {
+  res.json({ user: req.admin });
+});
+
+// ============================================================================
+// PUBLIC DATA ENDPOINT (FOR LIVE WEBSITE HYDRATION)
+// ============================================================================
+
+app.get('/api/public/data', (req, res) => {
+  try {
+    const members = db.prepare('SELECT * FROM members WHERE active = 1 ORDER BY display_order ASC').all();
+    const rawEvents = db.prepare('SELECT * FROM events WHERE active = 1 ORDER BY display_order ASC').all();
+    const guests = db.prepare('SELECT * FROM guests ORDER BY display_order ASC').all();
+    const aboutRows = db.prepare('SELECT key, value FROM about_content').all();
+
+    const about = {};
+    for (const r of aboutRows) {
+      about[r.key] = r.value;
+    }
+
+    const events = rawEvents.map(e => ({
+      ...e,
+      isUpcoming: Boolean(e.is_upcoming),
+      venue: e.venue || null,
+      time: e.time || null,
+      registrationUrl: e.registration_url || null,
+      tracks: e.tracks_json ? JSON.parse(e.tracks_json) : null,
+      gallery: e.gallery_json ? JSON.parse(e.gallery_json) : [],
+    }));
+
+    res.json({
+      members: {
+        faculty: members.filter(m => m.category === 'faculty'),
+        student: members.filter(m => m.category === 'student'),
+        cwc: members.filter(m => m.category === 'cwc'),
+      },
+      events,
+      guests,
+      about,
+    });
+  } catch (err) {
+    console.error('Error fetching public data:', err);
+    res.status(500).json({ error: 'Failed to fetch public data.' });
+  }
+});
+
+// ============================================================================
+// ADMIN DASHBOARD STATS
+// ============================================================================
+
+app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
+  const memberCount = db.prepare('SELECT COUNT(*) as c FROM members').get().c;
+  const eventCount = db.prepare('SELECT COUNT(*) as c FROM events').get().c;
+  const mediaCount = db.prepare('SELECT COUNT(*) as c FROM media').get().c;
+  const guestCount = db.prepare('SELECT COUNT(*) as c FROM guests').get().c;
+  const totalApps = db.prepare('SELECT COUNT(*) as c FROM membership_applications').get().c;
+  const pendingApps = db.prepare("SELECT COUNT(*) as c FROM membership_applications WHERE status = 'pending'").get().c;
+
+  res.json({
+    totalMembers: memberCount,
+    totalEvents: eventCount,
+    totalMedia: mediaCount,
+    totalGuests: guestCount,
+    totalApplications: totalApps,
+    pendingApplications: pendingApps,
+  });
+});
+
+// ============================================================================
+// ADMIN: MEMBERS CRUD
+// ============================================================================
+
+app.get('/api/admin/members', requireAdminAuth, (req, res) => {
+  const members = db.prepare('SELECT * FROM members ORDER BY category, display_order ASC').all();
+  res.json(members);
+});
+
+app.post('/api/admin/members', requireAdminAuth, (req, res) => {
+  const {
+    category = 'student',
+    name,
+    role,
+    title = '',
+    title_class = 'badge-violet',
+    description = '',
+    image_url = '',
+    initials = '',
+    initials_color = '',
+    highlighted = 0,
+    display_order = 0,
+    active = 1,
+  } = req.body;
+
+  if (!name || !role) {
+    return res.status(400).json({ error: 'Name and Role are required.' });
+  }
+
+  const result = db.prepare(`
+    INSERT INTO members (category, name, role, title, title_class, description, image_url, initials, initials_color, highlighted, display_order, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    category,
+    name.trim(),
+    role.trim(),
+    title ? title.trim() : role.trim(),
+    title_class || 'badge-violet',
+    description || '',
+    image_url || '',
+    initials || name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+    initials_color || '',
+    highlighted ? 1 : 0,
+    Number(display_order) || 0,
+    active ? 1 : 0
+  );
+
+  const newMember = db.prepare('SELECT * FROM members WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(newMember);
+});
+
+app.put('/api/admin/members/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  const {
+    category,
+    name,
+    role,
+    title,
+    title_class,
+    description,
+    image_url,
+    initials,
+    initials_color,
+    highlighted,
+    display_order,
+    active,
+  } = req.body;
+
+  db.prepare(`
+    UPDATE members SET
+      category = COALESCE(?, category),
+      name = COALESCE(?, name),
+      role = COALESCE(?, role),
+      title = COALESCE(?, title),
+      title_class = COALESCE(?, title_class),
+      description = COALESCE(?, description),
+      image_url = COALESCE(?, image_url),
+      initials = COALESCE(?, initials),
+      initials_color = COALESCE(?, initials_color),
+      highlighted = COALESCE(?, highlighted),
+      display_order = COALESCE(?, display_order),
+      active = COALESCE(?, active)
+    WHERE id = ?
+  `).run(
+    category,
+    name,
+    role,
+    title,
+    title_class,
+    description,
+    image_url,
+    initials,
+    initials_color,
+    highlighted !== undefined ? (highlighted ? 1 : 0) : null,
+    display_order !== undefined ? Number(display_order) : null,
+    active !== undefined ? (active ? 1 : 0) : null,
+    id
+  );
+
+  const updated = db.prepare('SELECT * FROM members WHERE id = ?').get(id);
+  res.json(updated);
+});
+
+app.delete('/api/admin/members/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM members WHERE id = ?').run(id);
+  res.json({ success: true, id });
+});
+
+// ============================================================================
+// ADMIN: EVENTS & WORKSHOPS CRUD
+// ============================================================================
+
+app.get('/api/admin/events', requireAdminAuth, (req, res) => {
+  const events = db.prepare('SELECT * FROM events ORDER BY display_order ASC').all();
+  const parsed = events.map(e => ({
+    ...e,
+    isUpcoming: Boolean(e.is_upcoming),
+    venue: e.venue || '',
+    time: e.time || '',
+    registrationUrl: e.registration_url || '',
+    tracks: e.tracks_json ? JSON.parse(e.tracks_json) : [],
+    gallery: e.gallery_json ? JSON.parse(e.gallery_json) : [],
+  }));
+  res.json(parsed);
+});
+
+app.post('/api/admin/events', requireAdminAuth, (req, res) => {
+  const {
+    title,
+    date,
+    badge = 'WORKSHOP',
+    badge_class = 'badge-violet',
+    description = '',
+    meta = '',
+    tracks = [],
+    leads = '',
+    platform = '',
+    cover_image = '',
+    gallery = [],
+    display_order = 0,
+    active = 1,
+    isUpcoming = false,
+    is_upcoming,
+    venue = '',
+    time = '',
+    registrationUrl = '',
+    registration_url,
+  } = req.body;
+
+  if (!title || !date) {
+    return res.status(400).json({ error: 'Title and Date are required.' });
+  }
+
+  const upcomingFlag = is_upcoming !== undefined ? (is_upcoming ? 1 : 0) : (isUpcoming ? 1 : 0);
+  const regUrl = registration_url !== undefined ? registration_url : registrationUrl;
+
+  const result = db.prepare(`
+    INSERT INTO events (title, date, badge, badge_class, description, meta, tracks_json, leads, platform, cover_image, gallery_json, display_order, active, is_upcoming, venue, time, registration_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    title.trim(),
+    date.trim(),
+    badge || 'WORKSHOP',
+    badge_class || 'badge-violet',
+    description || '',
+    meta || '',
+    tracks ? JSON.stringify(tracks) : null,
+    leads || '',
+    platform || '',
+    cover_image || '',
+    gallery ? JSON.stringify(gallery) : '[]',
+    Number(display_order) || 0,
+    active ? 1 : 0,
+    upcomingFlag,
+    venue ? venue.trim() : null,
+    time ? time.trim() : null,
+    regUrl ? regUrl.trim() : null
+  );
+
+  const newEvent = db.prepare('SELECT * FROM events WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json({
+    ...newEvent,
+    isUpcoming: Boolean(newEvent.is_upcoming),
+    venue: newEvent.venue || '',
+    time: newEvent.time || '',
+    registrationUrl: newEvent.registration_url || '',
+    tracks: newEvent.tracks_json ? JSON.parse(newEvent.tracks_json) : [],
+    gallery: newEvent.gallery_json ? JSON.parse(newEvent.gallery_json) : [],
+  });
+});
+
+app.put('/api/admin/events/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  const {
+    title,
+    date,
+    badge,
+    badge_class,
+    description,
+    meta,
+    tracks,
+    leads,
+    platform,
+    cover_image,
+    gallery,
+    display_order,
+    active,
+    isUpcoming,
+    is_upcoming,
+    venue,
+    time,
+    registrationUrl,
+    registration_url,
+  } = req.body;
+
+  const upcomingFlag = is_upcoming !== undefined ? (is_upcoming ? 1 : 0) : (isUpcoming !== undefined ? (isUpcoming ? 1 : 0) : null);
+  const regUrl = registration_url !== undefined ? registration_url : registrationUrl;
+
+  db.prepare(`
+    UPDATE events SET
+      title = COALESCE(?, title),
+      date = COALESCE(?, date),
+      badge = COALESCE(?, badge),
+      badge_class = COALESCE(?, badge_class),
+      description = COALESCE(?, description),
+      meta = COALESCE(?, meta),
+      tracks_json = COALESCE(?, tracks_json),
+      leads = COALESCE(?, leads),
+      platform = COALESCE(?, platform),
+      cover_image = COALESCE(?, cover_image),
+      gallery_json = COALESCE(?, gallery_json),
+      display_order = COALESCE(?, display_order),
+      active = COALESCE(?, active),
+      is_upcoming = COALESCE(?, is_upcoming),
+      venue = COALESCE(?, venue),
+      time = COALESCE(?, time),
+      registration_url = COALESCE(?, registration_url)
+    WHERE id = ?
+  `).run(
+    title,
+    date,
+    badge,
+    badge_class,
+    description,
+    meta,
+    tracks !== undefined ? JSON.stringify(tracks) : null,
+    leads,
+    platform,
+    cover_image,
+    gallery !== undefined ? JSON.stringify(gallery) : null,
+    display_order !== undefined ? Number(display_order) : null,
+    active !== undefined ? (active ? 1 : 0) : null,
+    upcomingFlag,
+    venue,
+    time,
+    regUrl,
+    id
+  );
+
+  const updated = db.prepare('SELECT * FROM events WHERE id = ?').get(id);
+  res.json({
+    ...updated,
+    isUpcoming: Boolean(updated.is_upcoming),
+    venue: updated.venue || '',
+    time: updated.time || '',
+    registrationUrl: updated.registration_url || '',
+    tracks: updated.tracks_json ? JSON.parse(updated.tracks_json) : [],
+    gallery: updated.gallery_json ? JSON.parse(updated.gallery_json) : [],
+  });
+});
+
+app.delete('/api/admin/events/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  res.json({ success: true, id });
+});
+
+// ============================================================================
+// ADMIN: ABOUT US & GUESTS
+// ============================================================================
+
+app.get('/api/admin/about', requireAdminAuth, (req, res) => {
+  const rows = db.prepare('SELECT key, value FROM about_content').all();
+  const obj = {};
+  for (const r of rows) obj[r.key] = r.value;
+  res.json(obj);
+});
+
+app.put('/api/admin/about', requireAdminAuth, (req, res) => {
+  const updates = req.body;
+  const upsert = db.prepare(`
+    INSERT INTO about_content (key, value, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `);
+
+  for (const [key, value] of Object.entries(updates)) {
+    upsert.run(key, String(value), new Date().toISOString());
+  }
+
+  res.json({ success: true, updates });
+});
+
+app.get('/api/admin/guests', requireAdminAuth, (req, res) => {
+  const guests = db.prepare('SELECT * FROM guests ORDER BY display_order ASC').all();
+  res.json(guests);
+});
+
+app.post('/api/admin/guests', requireAdminAuth, (req, res) => {
+  const { initials, name, org, role, label, label_color = '#22d3ee', border_color = 'rgba(139, 92, 246, 0.5)', display_order = 0 } = req.body;
+  if (!name || !role) {
+    return res.status(400).json({ error: 'Name and Role are required.' });
+  }
+
+  const result = db.prepare(`
+    INSERT INTO guests (initials, name, org, role, label, label_color, border_color, display_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    initials || name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+    name.trim(),
+    org || '',
+    role.trim(),
+    label || '',
+    label_color,
+    border_color,
+    Number(display_order) || 0
+  );
+
+  const newGuest = db.prepare('SELECT * FROM guests WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(newGuest);
+});
+
+app.put('/api/admin/guests/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  const { initials, name, org, role, label, label_color, border_color, display_order } = req.body;
+
+  db.prepare(`
+    UPDATE guests SET
+      initials = COALESCE(?, initials),
+      name = COALESCE(?, name),
+      org = COALESCE(?, org),
+      role = COALESCE(?, role),
+      label = COALESCE(?, label),
+      label_color = COALESCE(?, label_color),
+      border_color = COALESCE(?, border_color),
+      display_order = COALESCE(?, display_order)
+    WHERE id = ?
+  `).run(initials, name, org, role, label, label_color, border_color, display_order !== undefined ? Number(display_order) : null, id);
+
+  const updated = db.prepare('SELECT * FROM guests WHERE id = ?').get(id);
+  res.json(updated);
+});
+
+app.delete('/api/admin/guests/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM guests WHERE id = ?').run(id);
+  res.json({ success: true, id });
+});
+
+// ============================================================================
+// ADMIN: MEDIA / FILE UPLOAD
+// ============================================================================
+
+app.get('/api/admin/media', requireAdminAuth, (req, res) => {
+  const media = db.prepare('SELECT * FROM media ORDER BY id DESC').all();
+  res.json(media);
+});
+
+app.post('/api/admin/upload', requireAdminAuth, upload.array('images', 20), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files were uploaded.' });
+  }
+
+  const insertMedia = db.prepare(`
+    INSERT INTO media (filename, original_name, url, mime_type, size, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const results = [];
+  for (const f of req.files) {
+    const fileUrl = `/uploads/${f.filename}`;
+    const r = insertMedia.run(f.filename, f.originalname, fileUrl, f.mimetype, f.size, new Date().toISOString());
+    results.push({
+      id: r.lastInsertRowid,
+      filename: f.filename,
+      original_name: f.originalname,
+      url: fileUrl,
+      size: f.size,
+    });
+  }
+
+  res.status(201).json({
+    files: results,
+    // Convenience single-file url for single uploaders
+    url: results[0].url,
+  });
+});
+
+app.delete('/api/admin/media/:id', requireAdminAuth, (req, res) => {
+  const { id } = req.params;
+  const item = db.prepare('SELECT * FROM media WHERE id = ?').get(id);
+  if (item) {
+    const filePath = path.join(uploadsDir, item.filename);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('Failed to unlink file:', err);
+      }
+    }
+    db.prepare('DELETE FROM media WHERE id = ?').run(id);
+  }
+  res.json({ success: true, id });
+});
+
+// ============================================================================
+// PUBLIC: MEMBERSHIP APPLICATION SUBMISSION
+// ============================================================================
+
+app.post('/api/membership-applications', (req, res) => {
+  try {
+    const { name, email, year, message } = req.body;
+    if (!name || !email || !year) {
+      return res.status(400).json({ error: 'Name, email, and year of study are required.' });
+    }
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedYear = year.trim();
+    const trimmedMessage = (message || '').trim();
+
+    const insert = db.prepare(`
+      INSERT INTO membership_applications (name, email, year, message, status, created_at)
+      VALUES (?, ?, ?, ?, 'pending', ?)
+    `);
+
+    const result = insert.run(trimmedName, trimmedEmail, trimmedYear, trimmedMessage, new Date().toISOString());
+
+    res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully.',
+      id: result.lastInsertRowid,
+    });
+  } catch (err) {
+    console.error('Error submitting membership application:', err);
+    res.status(500).json({ error: 'Failed to submit application. Please try again.' });
+  }
+});
+
+// ============================================================================
+// ADMIN: MEMBERSHIP APPLICATIONS CRUD
+// ============================================================================
+
+app.get('/api/admin/applications', requireAdminAuth, (req, res) => {
+  try {
+    const applications = db.prepare('SELECT * FROM membership_applications ORDER BY id DESC').all();
+    res.json(applications);
+  } catch (err) {
+    console.error('Error fetching applications:', err);
+    res.status(500).json({ error: 'Failed to fetch membership applications.' });
+  }
+});
+
+app.patch('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validStatuses = ['pending', 'approved', 'rejected'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be pending, approved, or rejected.' });
+    }
+
+    const update = db.prepare('UPDATE membership_applications SET status = ? WHERE id = ?');
+    update.run(status, id);
+
+    const updated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
+    if (!updated) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    // Save/remove from MongoDB based on status
+    let mongoResult = null;
+    if (status === 'approved') {
+      try {
+        mongoResult = await saveApprovedMember(updated);
+      } catch (mongoErr) {
+        console.error('Error saving approved member to MongoDB:', mongoErr);
+      }
+    } else {
+      // If moved to rejected/pending, remove from MongoDB approved list
+      try {
+        await removeApprovedMember(updated.email);
+      } catch (mongoErr) {
+        console.error('Error removing member from MongoDB:', mongoErr);
+      }
+    }
+
+    // Trigger email notification to the student upon approval or rejection
+    let emailResult = null;
+    if (status === 'approved' || status === 'rejected') {
+      try {
+        emailResult = await sendApplicationStatusEmail(updated, status);
+      } catch (emailErr) {
+        console.error('Error dispatching application status email:', emailErr);
+      }
+    }
+
+    // Re-fetch in case emailService updated email_notified
+    const finalUpdated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
+
+    res.json({ ...finalUpdated, emailResult, mongoResult: mongoResult ? 'saved' : null });
+  } catch (err) {
+    console.error('Error updating application status:', err);
+    res.status(500).json({ error: 'Failed to update application.' });
+  }
+});
+
+app.post('/api/admin/applications/:id/send-email', requireAdminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const application = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found.' });
+    }
+
+    if (application.status === 'pending') {
+      return res.status(400).json({ error: 'Please approve or reject the application before sending an email notification.' });
+    }
+
+    const emailResult = await sendApplicationStatusEmail(application, application.status);
+    const updated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
+
+    res.json({ success: true, application: updated, emailResult });
+  } catch (err) {
+    console.error('Error sending application email:', err);
+    res.status(500).json({ error: 'Failed to dispatch email notification.' });
+  }
+});
+
+app.get('/api/admin/email-logs', requireAdminAuth, (req, res) => {
+  try {
+    const logs = db.prepare('SELECT * FROM email_logs ORDER BY id DESC LIMIT 100').all();
+    res.json(logs);
+  } catch (err) {
+    console.error('Error fetching email logs:', err);
+    res.status(500).json({ error: 'Failed to fetch email logs.' });
+  }
+});
+
+app.get('/api/admin/email-settings', requireAdminAuth, (req, res) => {
+  try {
+    const config = getEmailConfig();
+    const { pass, ...safeConfig } = config;
+    res.json(safeConfig);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get email settings' });
+  }
+});
+
+app.post('/api/admin/email-settings', requireAdminAuth, (req, res) => {
+  try {
+    const updated = saveEmailConfig(req.body);
+    const { pass, ...safeConfig } = updated;
+    res.json({ success: true, config: safeConfig });
+  } catch (err) {
+    console.error('Error saving email settings:', err);
+    res.status(500).json({ error: 'Failed to save email settings' });
+  }
+});
+
+app.post('/api/admin/email-settings/test', requireAdminAuth, async (req, res) => {
+  try {
+    const { testRecipient } = req.body;
+    const result = await testEmailConnection(testRecipient);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/admin/applications/:id', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('DELETE FROM membership_applications WHERE id = ?').run(id);
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error deleting application:', err);
+    res.status(500).json({ error: 'Failed to delete application.' });
+  }
+});
+
+// Admin: Get all approved members from MongoDB
+app.get('/api/admin/approved-members', requireAdminAuth, async (req, res) => {
+  try {
+    const members = await getApprovedMembers();
+    res.json({ connected: isMongoConnected(), members });
+  } catch (err) {
+    console.error('Error fetching approved members from MongoDB:', err);
+    res.status(500).json({ error: 'Failed to fetch approved members.' });
+  }
+});
+
+// Start Server — connect MongoDB first, then listen
+async function startServer() {
+  await connectMongo();
+  app.listen(PORT, () => {
+    console.log(`[Server] AgentBlazer Backend API running on http://localhost:${PORT}`);
+  });
+}
+
+startServer();
