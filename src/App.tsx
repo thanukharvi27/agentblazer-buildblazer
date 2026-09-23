@@ -2127,7 +2127,12 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server is not responding. Please make sure the backend server is running.');
+      }
       if (!res.ok) {
         throw new Error(data.error || 'Failed to submit application.');
       }
