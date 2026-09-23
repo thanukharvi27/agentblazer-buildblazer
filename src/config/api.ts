@@ -1,14 +1,19 @@
 /**
  * Central API & Asset URL Configuration
  * 
- * In development, VITE_API_URL is typically empty, routing requests through
+ * In development, VITE_API_URL defaults to empty, routing requests through
  * the Vite dev server proxy (e.g. /api/... -> http://localhost:5000/api/...).
  * 
- * In production (e.g. deployed to Vercel/Netlify), set VITE_API_URL to your backend
- * origin (e.g. https://agentblazer-backend.onrender.com).
+ * In production, requests target the deployed Render backend origin
+ * (https://agentblazer-api.onrender.com) or the configured VITE_API_URL.
  */
 
-export const API_BASE_URL: string = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const DEFAULT_PROD_API = 'https://agentblazer-api.onrender.com';
+
+export const API_BASE_URL: string = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? DEFAULT_PROD_API : '')
+).replace(/\/+$/, '');
 
 /**
  * Returns the fully qualified URL for an API endpoint.
