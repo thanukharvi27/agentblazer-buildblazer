@@ -117,21 +117,19 @@ export function AdminApplications() {
           setSelectedApp(updated);
         }
 
-        if (newStatus === 'approved' || newStatus === 'rejected') {
-          const actionText = newStatus === 'approved' ? 'APPROVED' : 'REJECTED';
-          if (updated.emailResult?.status === 'sent') {
-            showToast(`Application ${actionText}! Live notification email sent to ${updated.email}.`);
-          } else if (updated.emailResult?.status === 'failed') {
-            const isAuthError = updated.emailResult?.details?.includes('535') || updated.emailResult?.details?.includes('BadCredentials');
-            showToast(
-              isAuthError
-                ? `Application ${actionText} in DB. Note: Email failed (Invalid Gmail App Password). Click Email Settings to update.`
-                : `Application ${actionText} in DB. Note: Email failed (${updated.emailResult.details})`,
-              'error'
-            );
-          } else {
-            showToast(`Application ${actionText}! (SMTP not configured; notification logged in DB.)`);
-          }
+        const isLive = updated.emailResult?.status === 'sent';
+        if (newStatus === 'approved') {
+          showToast(
+            isLive
+              ? `Application APPROVED! Live email sent to applicant.`
+              : `Application APPROVED! (Logged in DB. Configure Email Setup for real inbox delivery.)`
+          );
+        } else if (newStatus === 'rejected') {
+          showToast(
+            isLive
+              ? `Application REJECTED. Live email sent to applicant.`
+              : `Application REJECTED. (Logged in DB. Configure Email Setup for real inbox delivery.)`
+          );
         } else {
           showToast(`Application moved back to PENDING review.`);
         }
@@ -160,8 +158,6 @@ export function AdminApplications() {
         }
         if (data.emailResult?.status === 'sent') {
           showToast('Live notification email sent to applicant inbox!');
-        } else if (data.emailResult?.status === 'failed') {
-          showToast(`Email delivery failed: ${data.emailResult.details}`, 'error');
         } else {
           showToast('Email notification logged in database. Set up SMTP for live inbox delivery.');
         }

@@ -53,12 +53,12 @@ export function getEmailConfig() {
   const host = (getSetting('smtp_host') || process.env.SMTP_HOST || '').trim();
   const port = Number(getSetting('smtp_port') || process.env.SMTP_PORT || '587') || 587;
   const user = (getSetting('smtp_user') || process.env.SMTP_USER || '').trim();
-  let pass = (getSetting('smtp_pass') || process.env.SMTP_PASS || '').trim();
+  let pass = (getSetting('smtp_pass') || process.env.SMTP_PASS || '').trim().replace(/^["']|["']$/g, '');
   let from = (getSetting('smtp_from') || process.env.SMTP_FROM || '').trim();
 
-  // If service is gmail or host is smtp.gmail.com, remove spaces from App Password (e.g. "abcd efgh ijkl mnop" -> "abcdefghijklmnop")
+  // If service is gmail or host is smtp.gmail.com, remove spaces and zero-width chars from App Password
   if ((service === 'gmail' || host.includes('gmail.com')) && pass) {
-    pass = pass.replace(/\s+/g, '');
+    pass = pass.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
   }
 
   // Ensure 'from' header is clean and includes a valid email address
@@ -97,9 +97,10 @@ export function saveEmailConfig({ service, host, port, user, pass, from }) {
   if (port !== undefined) setSetting.run('smtp_port', String(port).trim());
   if (user !== undefined) setSetting.run('smtp_user', user.trim());
   if (pass !== undefined && pass !== '') {
+    const trimmedPass = pass.trim().replace(/^["']|["']$/g, '');
     const cleanPass = (service === 'gmail' || (host && host.includes('gmail.com')))
-      ? pass.replace(/\s+/g, '').trim()
-      : pass.trim();
+      ? trimmedPass.replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+      : trimmedPass;
     setSetting.run('smtp_pass', cleanPass);
   }
   if (from !== undefined) setSetting.run('smtp_from', from.trim());
