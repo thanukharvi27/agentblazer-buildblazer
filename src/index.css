@@ -585,6 +585,40 @@ footer,
   transform: translateY(-2px);
 }
 
+/* CSE Department Contact Card Highlight & Hover Styles */
+.cse-contact-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.35s ease,
+              border-color 0.35s ease,
+              box-shadow 0.35s ease;
+  cursor: pointer;
+}
+
+.cse-contact-card:hover,
+.cse-contact-card.cse-highlighted {
+  background: var(--card-fill-bg) !important;
+  border-color: var(--card-fill-border) !important;
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  box-shadow: var(--card-fill-shadow), 0 0 35px var(--accent-glow) !important;
+  transform: translateY(-4px) scale(1.02) !important;
+}
+
+.cse-contact-card.cse-highlighted {
+  animation: cseCardPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes cseCardPulse {
+  0% {
+    box-shadow: var(--card-fill-shadow), 0 0 20px var(--accent-glow) !important;
+    border-color: var(--card-fill-border) !important;
+  }
+  100% {
+    box-shadow: var(--card-fill-shadow), 0 0 45px var(--accent-glow), 0 0 65px rgba(34, 211, 238, 0.35) !important;
+    border-color: var(--neon-secondary, #22d3ee) !important;
+  }
+}
+
 .card-active-theme .card-highlight-title,
 .member-card-highlighted .card-highlight-title {
   color: var(--card-fill-title) !important;

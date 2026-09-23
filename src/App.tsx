@@ -2117,6 +2117,31 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isCseHighlighted, setIsCseHighlighted] = useState(false);
+  const [isCseHovered, setIsCseHovered] = useState(false);
+  const cseCardRef = useRef<HTMLDivElement>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleContactCseClick = () => {
+    setIsCseHighlighted(true);
+    cseCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = setTimeout(() => {
+      setIsCseHighlighted(false);
+    }, 6000);
+  };
+
+  const isCardActive = isCseHighlighted || isCseHovered;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2173,21 +2198,112 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
           }}>
             Become a Member
           </button>
-          <button className="btn-outline px-6 py-3 rounded-xl text-sm font-semibold w-full sm:w-auto text-center">
+          <button
+            className={`btn-outline px-6 py-3 rounded-xl text-sm font-semibold w-full sm:w-auto text-center transition-all duration-300 ${
+              isCseHighlighted ? 'ring-2 ring-cyan-400 bg-cyan-950/40 text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)]' : ''
+            }`}
+            onClick={handleContactCseClick}
+          >
             Contact CSE Department
           </button>
         </div>
 
-        <div className="card p-5 sm:p-6 w-full max-w-xl mb-8 sm:mb-12">
+        <div
+          ref={cseCardRef}
+          id="cse-department-card"
+          onMouseEnter={() => setIsCseHovered(true)}
+          onMouseLeave={() => setIsCseHovered(false)}
+          onClick={() => setIsCseHighlighted((prev) => !prev)}
+          className={`card cse-contact-card p-5 sm:p-6 w-full max-w-xl mb-8 sm:mb-12 ${
+            isCardActive ? 'card-active-theme cse-highlighted' : ''
+          }`}
+        >
           <div className="flex items-start gap-4">
-            <div style={{ width: 40, height: 40, background: 'var(--ambient-1)', border: '1px solid var(--border-medium)', borderRadius: 10 }}
-              className="flex items-center justify-center text-lg flex-shrink-0">🏫</div>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                background: isCardActive
+                  ? 'linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end))'
+                  : 'var(--ambient-1)',
+                border: isCardActive ? '1px solid var(--neon-secondary)' : '1px solid var(--border-medium)',
+                borderRadius: 12,
+                boxShadow: isCardActive ? '0 0 16px var(--accent-glow)' : 'none',
+                transform: isCardActive ? 'scale(1.08)' : 'scale(1)',
+                transition: 'all 0.35s ease'
+              }}
+              className="flex items-center justify-center text-xl flex-shrink-0"
+            >
+              🏫
+            </div>
             <div className="min-w-0 flex-1">
-              <div className="font-bold mb-1">Department of Computer Science &amp; Engineering</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>St Joseph Engineering College, Vamanjoor</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Mangaluru, Karnataka – 575028, India</div>
-              <div style={{ marginTop: 8, fontSize: 13, wordBreak: 'break-word' }}>
-                Direct Inquiries: <a href="mailto:agentblazer@sjec.ac.in" style={{ color: 'var(--accent-cyan)' }}>agentblazer@sjec.ac.in</a>
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                <div
+                  className={`font-bold ${isCardActive ? 'card-highlight-title' : ''}`}
+                  style={{
+                    color: isCardActive ? 'var(--card-fill-title)' : 'var(--text-primary)',
+                    transition: 'all 0.35s ease',
+                    fontSize: '1rem'
+                  }}
+                >
+                  Department of Computer Science &amp; Engineering
+                </div>
+                {isCseHighlighted && (
+                  <span
+                    className="badge badge-cyan text-xs flex-shrink-0 animate-pulse"
+                    style={{
+                      background: 'var(--card-fill-badge-bg)',
+                      borderColor: 'var(--card-fill-badge-border)',
+                      color: 'var(--card-fill-badge-color)'
+                    }}
+                  >
+                    ● Contact Info Active
+                  </span>
+                )}
+              </div>
+              <div
+                className={isCardActive ? 'card-highlight-subtitle' : ''}
+                style={{
+                  color: isCardActive ? 'var(--card-fill-subtitle)' : 'var(--text-muted)',
+                  fontSize: 13,
+                  transition: 'all 0.35s ease'
+                }}
+              >
+                St Joseph Engineering College, Vamanjoor
+              </div>
+              <div
+                className={isCardActive ? 'card-highlight-subtitle' : ''}
+                style={{
+                  color: isCardActive ? 'var(--card-fill-subtitle)' : 'var(--text-muted)',
+                  fontSize: 13,
+                  transition: 'all 0.35s ease'
+                }}
+              >
+                Mangaluru, Karnataka – 575028, India
+              </div>
+              <div
+                className={isCardActive ? 'card-highlight-text' : ''}
+                style={{
+                  marginTop: 8,
+                  fontSize: 13,
+                  wordBreak: 'break-word',
+                  color: isCardActive ? 'var(--card-fill-text)' : 'inherit',
+                  transition: 'all 0.35s ease'
+                }}
+              >
+                Direct Inquiries:{' '}
+                <a
+                  href="mailto:agentblazer@sjec.ac.in"
+                  style={{
+                    color: 'var(--accent-cyan)',
+                    fontWeight: 600,
+                    textDecoration: isCardActive ? 'underline' : 'none',
+                    textUnderlineOffset: '3px'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  agentblazer@sjec.ac.in
+                </a>
               </div>
             </div>
           </div>
