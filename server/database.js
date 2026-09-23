@@ -184,7 +184,7 @@ if (memberCount === 0) {
 
   // Student Core Team & Officers
   insertMember.run('student', 'Ruben Saldanha', 'Executive President', 'President', 'badge-green', 'Guiding club vision, university collaborations, and strategic workshop series.', '', 'RS', '', 0, 1);
-  insertMember.run('student', 'Ajay Preenal Dsouza', 'Executive Vice President', 'Vice President', 'badge-gold', 'Coordinating student mentorship, event operations, and community growth.', '', 'AD', '', 1, 2);
+  insertMember.run('student', 'Ajay Preenal Dsouza', 'Executive Vice President', 'Vice President', 'badge-gold', 'Coordinating student mentorship, event operations, and community growth.', '', 'AD', '', 0, 2);
   insertMember.run('student', 'Stevin Dsouza', 'Technical Direction', 'Tech Lead', 'badge-cyan', 'Technical architectures, hands-on lab environments, and repository supervision.', '', 'SD', '', 0, 3);
   insertMember.run('student', 'Frenny Chrystal Saldanha', 'Operations & Logistics', 'Resource Head', 'badge-gold', 'Managing cloud compute budgets, venue infrastructure, and participant toolkits.', '', 'FS', '', 0, 4);
   insertMember.run('student', 'Joyline Galbao', 'Administration', 'Secretary', 'badge-gold', 'Documentation, accreditation reporting, meeting minutes, and member onboarding.', '', 'JG', '', 0, 5);

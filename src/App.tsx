@@ -147,7 +147,7 @@ const TEAM = [
     title: 'Vice President',
     titleClass: 'badge-gold',
     description: 'Coordinating student mentorship, event operations, and community growth.',
-    highlighted: true,
+    highlighted: false,
     image: ajayImg,
   },
   {
@@ -2059,8 +2059,7 @@ function TeamCard({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const showOriginalHighlight = member.highlighted && !hasAnyActive;
-  const isFilled = isActive || showOriginalHighlight;
+  const isFilled = isActive;
 
   return (
     <div

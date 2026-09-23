@@ -113,7 +113,7 @@ export function AdminMedia() {
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div className="adm-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px 0' }}>Media &amp; Image Library</h1>
           <p style={{ color: 'var(--adm-text-muted)', fontSize: 13, margin: 0 }}>
@@ -178,7 +178,7 @@ export function AdminMedia() {
           No images uploaded yet. Upload images above to populate the media library.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 180px), 1fr))', gap: 16 }}>
           {media.map((item) => (
             <div
               key={item.id}

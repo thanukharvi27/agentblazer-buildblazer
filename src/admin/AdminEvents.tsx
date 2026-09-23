@@ -258,7 +258,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div className="adm-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px 0' }}>Events &amp; Workshops Management</h1>
           <p style={{ color: 'var(--adm-text-muted)', fontSize: 13, margin: 0 }}>
@@ -454,7 +454,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                 </div>
 
                 {/* Date & Order */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Event Date String *</label>
                     <input
@@ -478,7 +478,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                 </div>
 
                 {/* Badge & Badge Class */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Badge Label</label>
                     <input
@@ -553,7 +553,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                   </div>
 
                   {form.isUpcoming && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(16, 185, 129, 0.2)' }}>
                       <div>
                         <label className="adm-label">Venue / Physical Location *</label>
                         <input
@@ -589,7 +589,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                 </div>
 
                 {/* Tracks & Meta */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Tracks (Comma-separated)</label>
                     <input
@@ -613,7 +613,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                 </div>
 
                 {/* Leads or Platform */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Session Leads (Optional)</label>
                     <input

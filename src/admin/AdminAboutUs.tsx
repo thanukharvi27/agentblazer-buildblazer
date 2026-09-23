@@ -183,14 +183,14 @@ export function AdminAboutUs() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
           {/* Main Headings & Mission Form */}
           <form onSubmit={handleAboutSubmit} style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Page Headings &amp; Descriptions</h2>
               <button type="submit" className="adm-btn-primary" disabled={savingAbout}>
                 {savingAbout ? 'Saving...' : 'Save Headings'}
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label className="adm-label">Section Tag / Badge</label>
                 <input
@@ -231,7 +231,7 @@ export function AdminAboutUs() {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <label className="adm-label">Inauguration Date</label>
                 <input
@@ -255,7 +255,7 @@ export function AdminAboutUs() {
 
           {/* Honored Guests & Patrons List */}
           <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px 0' }}>Honored Guests &amp; Leadership</h2>
                 <div style={{ fontSize: 12, color: 'var(--adm-text-dim)' }}>
@@ -370,7 +370,7 @@ export function AdminAboutUs() {
 
             <form onSubmit={handleGuestSubmit}>
               <div className="adm-modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Full Name *</label>
                     <input
@@ -395,7 +395,7 @@ export function AdminAboutUs() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Organization / College Role *</label>
                     <input
@@ -420,7 +420,7 @@ export function AdminAboutUs() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Keynote Badge Label</label>
                     <input

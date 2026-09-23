@@ -204,7 +204,7 @@ export function AdminMembers() {
       )}
 
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+      <div className="adm-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px 0' }}>Members Management</h1>
           <p style={{ color: 'var(--adm-text-muted)', fontSize: 13, margin: 0 }}>
@@ -218,7 +218,7 @@ export function AdminMembers() {
       </div>
 
       {/* Category Filter Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: '1px solid var(--adm-border)', paddingBottom: 12 }}>
+      <div className="adm-category-tabs" style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: '1px solid var(--adm-border)', paddingBottom: 12 }}>
         {[
           { id: 'all', label: `All Members (${members.length})` },
           { id: 'faculty', label: `Faculty Council (${members.filter((m) => m.category === 'faculty').length})` },
@@ -395,7 +395,7 @@ export function AdminMembers() {
             <form onSubmit={handleSubmit}>
               <div className="adm-modal-body">
                 {/* Category & Order */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Member Category</label>
                     <select
@@ -421,7 +421,7 @@ export function AdminMembers() {
                 </div>
 
                 {/* Name & Role */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Full Name *</label>
                     <input
@@ -447,7 +447,7 @@ export function AdminMembers() {
                 </div>
 
                 {/* Title & Badge Class */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Card Badge Title</label>
                     <input
@@ -475,7 +475,7 @@ export function AdminMembers() {
                 </div>
 
                 {/* Initials & Highlight */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label className="adm-label">Initials (2 letters)</label>
                     <input

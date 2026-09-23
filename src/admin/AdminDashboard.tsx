@@ -130,7 +130,7 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
       {/* Quick Action Hub */}
       <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0' }}>Quick Actions</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }} className="adm-quick-actions">
           <button className="adm-btn-primary" onClick={() => setTab('create-event')} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
             <span>➕</span>
             <span>Create New Event (+New)</span>
@@ -159,7 +159,7 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
       </div>
 
       {/* System Status & Architecture Information */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+      <div className="adm-info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
         <div style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 14, padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: '#10b981' }}>●</span>

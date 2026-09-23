@@ -312,6 +312,7 @@ export function AdminApplications() {
 
       {/* Header */}
       <div
+        className="adm-page-header"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -330,7 +331,7 @@ export function AdminApplications() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="adm-page-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* SMTP Status Pill */}
           <div
             onClick={() => setIsEmailModalOpen(true)}
@@ -472,6 +473,7 @@ export function AdminApplications() {
 
       {/* Filter & Search Bar */}
       <div
+        className="adm-filter-bar"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -511,7 +513,7 @@ export function AdminApplications() {
         </div>
 
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 260 }}>
+        <div className="adm-search-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 260 }}>
           <div style={{ position: 'relative', width: '100%' }}>
             <span
               style={{
@@ -844,7 +846,7 @@ export function AdminApplications() {
               {/* Status Update Quick Toggles */}
               <div>
                 <label className="adm-label">Change Status &amp; Dispatch Notification:</label>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   <button
                     type="button"
                     className="adm-btn-secondary"
@@ -917,7 +919,7 @@ export function AdminApplications() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       <button
                         type="button"
                         className="adm-btn-secondary"
@@ -1020,7 +1022,7 @@ export function AdminApplications() {
                 {/* Method selector */}
                 <div>
                   <label className="adm-label">Mail Provider / Protocol:</label>
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                     <button
                       type="button"
                       className="adm-btn-secondary"
@@ -1090,7 +1092,7 @@ export function AdminApplications() {
 
                 {/* Custom host & port if not Gmail */}
                 {emailForm.service !== 'gmail' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                  <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
                     <div>
                       <label className="adm-label">SMTP Host:</label>
                       <input

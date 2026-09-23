@@ -145,7 +145,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="adm-btn-secondary md:hidden"
+              className="adm-btn-secondary adm-hamburger-btn"
               style={{ padding: '6px 10px', fontSize: 16 }}
               aria-label="Toggle navigation menu"
             >
@@ -169,7 +169,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
               style={{ fontSize: 12, padding: '7px 12px' }}
             >
               <span>🌐</span>
-              <span>Open Public Website</span>
+              <span className="adm-topbar-public-text">Open Public Website</span>
               <span style={{ fontSize: 10 }}>↗</span>
             </a>
           </div>

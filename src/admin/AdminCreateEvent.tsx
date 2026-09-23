@@ -212,7 +212,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
       </div>
 
       {/* 2-Column Responsive Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 28, alignItems: 'start' }}>
+      <div className="adm-event-create-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: 28, alignItems: 'start' }}>
         {/* Left Column: Form */}
         <div style={{ background: 'var(--adm-surface, #0f172a)', border: '1px solid var(--adm-border, #334155)', borderRadius: 16, padding: 24 }}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -230,7 +230,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
             </div>
 
             {/* Date & Time */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label className="adm-label">Date String *</label>
                 <input
@@ -255,7 +255,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
             </div>
 
             {/* Badge & Color */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label className="adm-label">Badge Label</label>
                 <input
@@ -377,7 +377,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
             </div>
 
             {/* Curriculum Tracks & Leads */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label className="adm-label">Tracks (Comma-separated)</label>
                 <input
@@ -470,7 +470,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <div className="adm-form-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
               <button
                 type="submit"
                 className="adm-btn-primary"
@@ -492,7 +492,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
         </div>
 
         {/* Right Column: Sticky Real-Time Live Preview */}
-        <div style={{ position: 'sticky', top: 90 }}>
+        <div className="adm-sticky-preview" style={{ position: 'sticky', top: 90 }}>
           <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--adm-text-dim, #64748b)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               👁️ Real-Time Website Card Preview

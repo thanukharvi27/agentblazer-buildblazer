@@ -435,9 +435,19 @@
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 14px;
   }
+  .adm-sidebar {
+    width: 240px;
+  }
+  .adm-content-wrapper {
+    margin-left: 240px;
+    width: calc(100% - 240px);
+  }
+  .adm-sticky-preview {
+    position: static !important;
+  }
 }
 
-/* Mobile */
+/* Mobile: sidebar collapses into off-canvas drawer */
 @media (max-width: 768px) {
   .adm-layout {
     flex-direction: column !important;
@@ -461,33 +471,218 @@
     margin-left: 0;
   }
   .adm-topbar {
-    padding: 0 16px;
+    padding: 0 12px;
+    height: 54px;
+  }
+  /* Hide the "Open Public Website" text on small screens */
+  .adm-topbar-public-text {
+    display: none;
   }
   .adm-main-body {
-    padding: 16px;
+    padding: 14px;
   }
   .adm-stats-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .adm-table-card {
-    overflow-x: auto;
-  }
-}
-
-/* Small mobile */
-@media (max-width: 480px) {
-  .adm-main-body {
-    padding: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
   .adm-stat-card {
     padding: 14px;
+    gap: 10px;
+  }
+  .adm-stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  .adm-table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .adm-table {
+    min-width: 600px;
+  }
+  /* Toast: full width on mobile */
+  .adm-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+  }
+  /* Modal: nearly full width */
+  .adm-modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
   }
   .adm-modal-content {
-    max-width: 100%;
-    border-radius: 12px;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 85vh;
+    border-radius: 14px 14px 0 0;
+  }
+  .adm-modal-header {
+    padding: 14px 16px;
   }
   .adm-modal-body {
     padding: 16px;
   }
+  .adm-modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  /* Responsive form grids: stack on mobile */
+  .adm-form-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+  /* Responsive system status / info cards grid */
+  .adm-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Quick action buttons: full width on mobile */
+  .adm-quick-actions {
+    flex-direction: column;
+  }
+  .adm-quick-actions .adm-btn-primary,
+  .adm-quick-actions .adm-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Filter bar: stack vertically */
+  .adm-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .adm-filter-bar > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  /* Search input should not have fixed min-width */
+  .adm-search-wrapper {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* Category tabs: horizontal scroll */
+  .adm-category-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    gap: 6px;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .adm-category-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .adm-category-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  /* Page header: stack title and action buttons */
+  .adm-page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .adm-page-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  /* Sidebar footer sign-out button */
+  .adm-sidebar-footer .adm-btn-danger {
+    overflow: visible;
+    white-space: nowrap;
+  }
+  /* Login card: reduce padding on smaller screens */
+  .adm-login-card {
+    padding: 24px 20px;
+  }
+}
+
+/* Small mobile (430px and below) */
+@media (max-width: 480px) {
+  .adm-main-body {
+    padding: 10px;
+  }
+  .adm-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .adm-stat-card {
+    padding: 12px;
+  }
+  .adm-modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 12px 12px 0 0;
+  }
+  .adm-form-actions button {
+    flex: 1 1 100% !important;
+  }
+  .adm-modal-body {
+    padding: 14px;
+  }
+  .adm-topbar {
+    padding: 0 10px;
+    height: 50px;
+  }
+  .adm-login-card {
+    padding: 20px 16px;
+  }
+  .adm-login-card h1 {
+    font-size: 19px !important;
+  }
+  /* Buttons: ensure tappable size */
+  .adm-btn-primary,
+  .adm-btn-secondary,
+  .adm-btn-danger {
+    min-height: 40px;
+    font-size: 13px;
+  }
+}
+
+/* Tiny mobile (360px and below) */
+@media (max-width: 360px) {
+  .adm-main-body {
+    padding: 8px;
+  }
+  .adm-topbar {
+    padding: 0 8px;
+  }
+  .adm-stat-card {
+    padding: 10px;
+    gap: 8px;
+  }
+  .adm-stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+  .adm-login-card {
+    padding: 18px 14px;
+  }
+}
+
+/* Hamburger button visibility: visible only below 768px */
+.adm-hamburger-btn {
+  display: none;
+}
+@media (max-width: 768px) {
+  .adm-hamburger-btn {
+    display: inline-flex;
+  }
+}
+
+/* Ensure images inside admin are responsive */
+.adm-root img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent horizontal overflow on the entire admin */
+.adm-root {
+  overflow-x: hidden;
+}
+.adm-content-wrapper {
+  overflow-x: hidden;
 }
