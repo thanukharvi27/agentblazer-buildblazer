@@ -3,7 +3,7 @@ import { useAdminAuth } from './AdminAuthContext';
 
 export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const { login } = useAdminAuth();
-  const [username, setUsername] = useState('admin@agentblazer.ac.in');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +71,7 @@ export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
             <label className="adm-label">Administrator Email / Username</label>
             <input
@@ -79,7 +79,8 @@ export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
               className="adm-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin@agentblazer.ac.in"
+              placeholder="Enter email or username"
+              autoComplete="off"
               required
               autoFocus
             />
@@ -92,7 +93,8 @@ export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
               className="adm-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
+              placeholder="Enter password"
+              autoComplete="new-password"
               required
             />
           </div>
