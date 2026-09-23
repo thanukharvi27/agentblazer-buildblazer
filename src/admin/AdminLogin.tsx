@@ -62,9 +62,17 @@ export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
         body: JSON.stringify({ email: cleanEmail }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to request reset code.');
+        if (res.status === 404) {
+          throw new Error('Backend endpoint not found (404). Please ensure the latest backend deployment is complete on Render.');
+        }
+        throw new Error(data.error || `Server returned error (${res.status}).`);
       }
 
       setResetSuccessMessage(data.message || 'Verification code sent to your email.');
@@ -109,9 +117,17 @@ export function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to reset password.');
+        if (res.status === 404) {
+          throw new Error('Backend endpoint not found (404). Please ensure the latest backend deployment is complete on Render.');
+        }
+        throw new Error(data.error || `Server returned error (${res.status}).`);
       }
 
       setView('success');
