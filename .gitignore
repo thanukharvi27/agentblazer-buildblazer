@@ -18,4 +18,5 @@ logs/
 # repo root IS the workspace root, so these land inside this repo rather than
 # beside it.
 /.plugins/
-/.opencode-skills/
+/.opencode-skills/
+frontend/
