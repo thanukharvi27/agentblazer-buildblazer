@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import { AdminTab } from './AdminLayout';
+import { getApiUrl } from '../config/api';
 
 export const apiUrl = (input: string) => {
-  return input.startsWith('http') ? input : input;
+  return getApiUrl(input);
 };
 
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {

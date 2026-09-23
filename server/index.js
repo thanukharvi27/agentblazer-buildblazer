@@ -138,6 +138,25 @@ const formLimiter = rateLimit({
 app.use('/api/', generalApiLimiter);
 
 // ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+app.get(['/api/health', '/health'], (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'AgentBlazer Backend API',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    environment: process.env.NODE_ENV || 'development',
+    serverless: isServerless,
+    database: {
+      sqlite: db ? 'connected' : 'error',
+      mongodb: isMongoConnected() ? 'connected' : 'disconnected',
+    },
+  });
+});
+
+// ============================================================================
 // AUTHENTICATION
 // ============================================================================
 
