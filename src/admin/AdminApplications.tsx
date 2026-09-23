@@ -10,6 +10,14 @@ export interface MembershipApplication {
   status: 'pending' | 'approved' | 'rejected';
   email_notified?: number;
   email_notified_at?: string;
+  email_status?: 'pending' | 'sent' | 'failed' | 'not_configured';
+  email_error?: string;
+  emailSent?: boolean;
+  emailResult?: {
+    success: boolean;
+    status: string;
+    details?: string;
+  };
   created_at: string;
 }
 
@@ -117,19 +125,21 @@ export function AdminApplications() {
           setSelectedApp(updated);
         }
 
-        const isLive = updated.emailResult?.status === 'sent';
-        if (newStatus === 'approved') {
-          showToast(
-            isLive
-              ? `Application APPROVED! Live email sent to applicant.`
-              : `Application APPROVED! (Logged in DB. Configure Email Setup for real inbox delivery.)`
-          );
-        } else if (newStatus === 'rejected') {
-          showToast(
-            isLive
-              ? `Application REJECTED. Live email sent to applicant.`
-              : `Application REJECTED. (Logged in DB. Configure Email Setup for real inbox delivery.)`
-          );
+        const isEmailSent = Boolean(updated.emailSent ?? (updated.email_status === 'sent' || updated.emailResult?.status === 'sent'));
+        const actionText = newStatus === 'approved' ? 'APPROVED' : 'REJECTED';
+        const emailErr = updated.emailError || (updated.emailResult?.status === 'failed' ? updated.emailResult?.details : null);
+
+        if (newStatus === 'approved' || newStatus === 'rejected') {
+          if (isEmailSent) {
+            showToast(`Application ${actionText} in DB & live notification email sent to ${updated.email}!`);
+          } else if (emailErr) {
+            showToast(
+              `Application ${actionText} in DB, but email failed (${emailErr.slice(0, 85)}...). Use Re-send Email after updating Email Settings.`,
+              'error'
+            );
+          } else {
+            showToast(`Application ${actionText} in DB! (SMTP not configured; notification logged in DB.)`);
+          }
         } else {
           showToast(`Application moved back to PENDING review.`);
         }
@@ -156,10 +166,12 @@ export function AdminApplications() {
         if (selectedApp && selectedApp.id === id) {
           setSelectedApp(data.application);
         }
-        if (data.emailResult?.status === 'sent') {
+        const isEmailSent = Boolean(data.emailSent ?? (data.application?.email_status === 'sent' || data.emailResult?.status === 'sent'));
+        if (isEmailSent) {
           showToast('Live notification email sent to applicant inbox!');
         } else {
-          showToast('Email notification logged in database. Set up SMTP for live inbox delivery.');
+          const errDetail = data.emailError || data.emailResult?.details || 'Check SMTP configuration in Email Settings.';
+          showToast(`Email delivery failed: ${errDetail}`, 'error');
         }
       } else {
         showToast(data.error || 'Failed to dispatch email', 'error');
@@ -659,8 +671,18 @@ export function AdminApplications() {
                       <div>
                         {getStatusBadge(app.status)}
                         {app.status !== 'pending' && (
-                          <div style={{ fontSize: 11, color: app.email_notified ? '#38bdf8' : '#94a3b8', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span>{app.email_notified ? '✉️ Notified' : '⚠️ Pending Email'}</span>
+                          <div style={{ fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {app.email_status === 'sent' || (app.email_notified === 1 && app.email_status !== 'failed') ? (
+                              <span style={{ color: '#38bdf8' }}>✉️ Notified</span>
+                            ) : app.email_status === 'failed' ? (
+                              <span style={{ color: '#f87171' }} title={app.email_error || 'Email delivery failed'}>
+                                ⚠️ Email Failed
+                              </span>
+                            ) : app.email_status === 'not_configured' ? (
+                              <span style={{ color: '#94a3b8' }}>⚠️ Email Not Sent</span>
+                            ) : (
+                              <span style={{ color: '#94a3b8' }}>⏳ Pending Email</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -818,7 +840,7 @@ export function AdminApplications() {
                 <div>
                   Submitted: <strong style={{ color: 'var(--adm-text-muted)' }}>{formatDate(selectedApp.created_at)}</strong>
                 </div>
-                {selectedApp.email_notified_at && (
+                {selectedApp.email_status === 'sent' && selectedApp.email_notified_at && (
                   <div>
                     Email Sent: <strong style={{ color: '#38bdf8' }}>{formatDate(selectedApp.email_notified_at)}</strong>
                   </div>
@@ -911,13 +933,20 @@ export function AdminApplications() {
                         ✉️ Email Notification Status
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--adm-text-muted)', marginTop: 2 }}>
-                        {selectedApp.email_notified
-                          ? `Notification logged & sent on ${formatDate(selectedApp.email_notified_at)}`
-                          : 'Notification has not been sent yet.'}
-                        {!emailConfig?.isConfigured && (
-                          <span style={{ color: '#fbbf24', display: 'block', marginTop: 2 }}>
-                            ⚠️ Sender email is unconfigured; notification recorded in database only.
+                        {selectedApp.email_status === 'sent' ? (
+                          <span style={{ color: '#4ade80' }}>
+                            ✓ Live notification email delivered to applicant on {formatDate(selectedApp.email_notified_at)}.
                           </span>
+                        ) : selectedApp.email_status === 'failed' ? (
+                          <span style={{ color: '#f87171' }}>
+                            ⚠️ Email delivery failed: {selectedApp.email_error || 'SMTP delivery failed'}. Click Email Settings to update credentials, then click Re-send Email.
+                          </span>
+                        ) : selectedApp.email_status === 'not_configured' ? (
+                          <span style={{ color: '#fbbf24' }}>
+                            ⚠️ SMTP is not configured; notification recorded in database only.
+                          </span>
+                        ) : (
+                          <span>Notification has not been dispatched yet.</span>
                         )}
                       </div>
                     </div>

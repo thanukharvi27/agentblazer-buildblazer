@@ -363,13 +363,25 @@ export async function sendApplicationStatusEmail(application, status) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(email, name, subject, status, deliveryStatus, deliveryDetails, new Date().toISOString());
 
-    // Update application record ONLY IF delivery was actually sent
+    // Update application record with precise email delivery status and error
     if (deliveryStatus === 'sent') {
       db.prepare(`
         UPDATE membership_applications
-        SET email_notified = 1, email_notified_at = ?
+        SET email_notified = 1, email_notified_at = ?, email_status = 'sent', email_error = NULL
         WHERE id = ?
       `).run(new Date().toISOString(), id);
+    } else if (deliveryStatus === 'failed') {
+      db.prepare(`
+        UPDATE membership_applications
+        SET email_notified = 0, email_status = 'failed', email_error = ?
+        WHERE id = ?
+      `).run(deliveryDetails, id);
+    } else {
+      db.prepare(`
+        UPDATE membership_applications
+        SET email_notified = 0, email_status = 'not_configured', email_error = ?
+        WHERE id = ?
+      `).run(deliveryDetails, id);
     }
   } catch (err) {
     console.error('[Email DB Log Error]:', err.message);
@@ -377,8 +389,11 @@ export async function sendApplicationStatusEmail(application, status) {
 
   return {
     success: deliveryStatus === 'sent',
+    emailSent: deliveryStatus === 'sent',
     status: deliveryStatus,
+    emailStatus: deliveryStatus,
     details: deliveryDetails,
+    emailError: deliveryStatus !== 'sent' ? deliveryDetails : null,
     recipient: email,
     subject,
   };

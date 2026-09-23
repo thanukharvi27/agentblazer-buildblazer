@@ -140,6 +140,8 @@ db.exec(`
     status TEXT DEFAULT 'pending',
     email_notified INTEGER DEFAULT 0,
     email_notified_at TEXT,
+    email_status TEXT DEFAULT 'pending',
+    email_error TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -170,6 +172,27 @@ try {
   db.exec(`ALTER TABLE membership_applications ADD COLUMN email_notified_at TEXT;`);
 } catch (e) {
   // column already exists
+}
+try {
+  db.exec(`ALTER TABLE membership_applications ADD COLUMN email_status TEXT DEFAULT 'pending';`);
+} catch (e) {
+  // column already exists
+}
+try {
+  db.exec(`ALTER TABLE membership_applications ADD COLUMN email_error TEXT;`);
+} catch (e) {
+  // column already exists
+}
+
+// Reset stale email_notified flags for rows where delivery was never actually verified as sent
+try {
+  db.exec(`
+    UPDATE membership_applications
+    SET email_notified = 0, email_status = 'failed', email_error = 'Delivery failed or not verified (Invalid Gmail credentials)'
+    WHERE email_notified = 1 AND (email_status IS NULL OR email_status != 'sent');
+  `);
+} catch (e) {
+  // ignore
 }
 try {
   db.exec(`ALTER TABLE events ADD COLUMN is_upcoming INTEGER DEFAULT 0;`);

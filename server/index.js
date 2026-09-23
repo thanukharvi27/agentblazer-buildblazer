@@ -885,10 +885,17 @@ app.patch('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
       }
     }
 
-    // Re-fetch in case emailService updated email_notified
+    // Re-fetch in case emailService updated email status fields
     const finalUpdated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
 
-    res.json({ ...finalUpdated, emailResult, mongoResult: mongoResult ? 'saved' : null });
+    res.json({
+      ...finalUpdated,
+      emailSent: emailResult ? emailResult.emailSent : false,
+      emailStatus: emailResult ? emailResult.emailStatus : 'not_configured',
+      emailError: emailResult ? emailResult.emailError : null,
+      emailResult,
+      mongoResult: mongoResult ? 'saved' : null
+    });
   } catch (err) {
     console.error('Error updating application status:', err);
     res.status(500).json({ error: 'Failed to update application.' });
@@ -910,7 +917,19 @@ app.post('/api/admin/applications/:id/send-email', requireAdminAuth, async (req,
     const emailResult = await sendApplicationStatusEmail(application, application.status);
     const updated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
 
-    res.json({ success: true, application: updated, emailResult });
+    res.json({
+      success: true,
+      application: {
+        ...updated,
+        emailSent: emailResult.emailSent,
+        emailStatus: emailResult.emailStatus,
+        emailError: emailResult.emailError,
+      },
+      emailSent: emailResult.emailSent,
+      emailStatus: emailResult.emailStatus,
+      emailError: emailResult.emailError,
+      emailResult
+    });
   } catch (err) {
     console.error('Error sending application email:', err);
     res.status(500).json({ error: 'Failed to dispatch email notification.' });
