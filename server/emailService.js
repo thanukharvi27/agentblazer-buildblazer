@@ -315,3 +315,67 @@ export async function sendApplicationStatusEmail(application, status) {
     subject,
   };
 }
+
+/**
+ * Send 6-digit password reset verification code to administrator
+ */
+export async function sendPasswordResetEmail(recipientEmail, resetCode) {
+  const transporter = getTransporter();
+  const config = getEmailConfig();
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background: #0b1120; color: #f8fafc; border-radius: 14px; padding: 32px; border: 1px solid #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #38bdf8; margin: 0 0 6px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">AgentBlazer Club</h2>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0;">Department of Computer Science & Engineering • SJEC</p>
+      </div>
+
+      <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+        <h3 style="color: #ffffff; margin: 0 0 8px 0; font-size: 16px; font-weight: 700;">Admin Password Reset Request</h3>
+        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0 0 18px 0;">
+          A request was received to reset the password for administrator account <strong>${recipientEmail}</strong>. Use the 6-digit verification code below to set a new password:
+        </p>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <div style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; background: #020617; padding: 14px 28px; border-radius: 10px; border: 1px solid #334155; font-family: monospace;">
+            ${resetCode}
+          </div>
+        </div>
+
+        <p style="color: #94a3b8; font-size: 12px; margin: 0; text-align: center; line-height: 1.5;">
+          This code is strictly confidential and expires in <strong>15 minutes</strong>.<br/>
+          If you did not request this, you can safely ignore this email.
+        </p>
+      </div>
+
+      <div style="text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; padding-top: 16px;">
+        St Joseph Engineering College, Mangaluru • Autonomous AI Society
+      </div>
+    </div>
+  `;
+
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: config.from,
+        to: recipientEmail,
+        subject: `🔐 AgentBlazer Admin Password Reset Code: ${resetCode}`,
+        html,
+      });
+      console.log(`[Email] Password reset code sent to ${recipientEmail}`);
+      return { success: true };
+    } catch (err) {
+      console.error(`[Email Error] Failed to send reset code to ${recipientEmail}:`, err.message);
+      return { success: false, error: err.message };
+    }
+  } else {
+    console.log(`[Email Simulated] SMTP not configured. Reset code for ${recipientEmail}: ${resetCode}`);
+    return {
+      success: true,
+      simulated: true,
+      code: resetCode,
+      note: 'SMTP not configured; code printed to server console.',
+    };
+  }
+}
+

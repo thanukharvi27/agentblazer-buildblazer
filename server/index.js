@@ -4,11 +4,12 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import { db } from './database.js';
-import { verifyPassword, generateAdminToken, invalidateToken, requireAdminAuth } from './auth.js';
-import { sendApplicationStatusEmail, getEmailConfig, saveEmailConfig, testEmailConnection } from './emailService.js';
+import { verifyPassword, hashPassword, generateAdminToken, invalidateToken, requireAdminAuth } from './auth.js';
+import { sendApplicationStatusEmail, sendPasswordResetEmail, getEmailConfig, saveEmailConfig, testEmailConnection } from './emailService.js';
 import { connectMongo, saveApprovedMember, removeApprovedMember, getApprovedMembers, isMongoConnected } from './mongoService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -181,6 +182,100 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
     token: authResult.token,
     user: { id: admin.id, username: admin.username },
     expiresAt: authResult.expiresAt,
+  });
+});
+
+// Request Password Reset Code
+app.post('/api/auth/forgot-password', loginLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Valid administrator email address is required.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const admin = db.prepare('SELECT id, username FROM admins WHERE username = ?').get(cleanEmail);
+
+  if (!admin) {
+    // Return generic success to prevent email enumeration attacks
+    return res.json({
+      success: true,
+      message: 'If this email is registered as an administrator, a 6-digit verification code has been sent.',
+    });
+  }
+
+  // Generate secure 6-digit verification code
+  const code = String(crypto.randomInt(100000, 999999));
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+  try {
+    db.prepare(`
+      INSERT INTO admin_password_resets (email, code, expires_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at
+    `).run(cleanEmail, code, expiresAt);
+  } catch (err) {
+    console.error('[Forgot Password Error]', err.message);
+    return res.status(500).json({ error: 'Could not process password reset request.' });
+  }
+
+  const emailResult = await sendPasswordResetEmail(cleanEmail, code);
+
+  res.json({
+    success: true,
+    message: 'If this email is registered as an administrator, a 6-digit verification code has been sent.',
+    ...(emailResult.simulated ? { simulated: true, note: 'SMTP not configured; check server logs for reset code.' } : {}),
+  });
+});
+
+// Verify Code and Set New Password
+app.post('/api/auth/reset-password', loginLimiter, (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: 'Email, verification code, and new password are required.' });
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanCode = String(code).trim();
+
+  const resetRecord = db.prepare('SELECT * FROM admin_password_resets WHERE email = ?').get(cleanEmail);
+  if (!resetRecord) {
+    return res.status(400).json({ error: 'No active password reset request found for this email. Please request a new code.' });
+  }
+
+  if (Date.now() > resetRecord.expires_at) {
+    db.prepare('DELETE FROM admin_password_resets WHERE email = ?').run(cleanEmail);
+    return res.status(400).json({ error: 'Verification code has expired. Please request a new code.' });
+  }
+
+  if (resetRecord.code !== cleanCode) {
+    return res.status(400).json({ error: 'Invalid verification code. Please check and try again.' });
+  }
+
+  // Update password in admins table
+  const salt = crypto.randomBytes(16).toString('hex');
+  const passwordHash = hashPassword(newPassword, salt);
+
+  const result = db.prepare(`
+    UPDATE admins
+    SET password_hash = ?, salt = ?
+    WHERE username = ?
+  `).run(passwordHash, salt, cleanEmail);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ error: 'Administrator account not found.' });
+  }
+
+  // Clear used reset code
+  db.prepare('DELETE FROM admin_password_resets WHERE email = ?').run(cleanEmail);
+
+  console.log(`[Admin Auth] Password reset successfully completed for: ${cleanEmail}`);
+  res.json({
+    success: true,
+    message: 'Your password has been reset successfully! You can now sign in with your new password.',
   });
 });
 
