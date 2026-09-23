@@ -18,7 +18,4 @@ logs/
 # repo root IS the workspace root, so these land inside this repo rather than
 # beside it.
 /.plugins/
-/.opencode-skills/
-
-src/assets/intro.mp4
-src/assets/Images/Ruben Saldana.WEBP
+/.opencode-skills/
