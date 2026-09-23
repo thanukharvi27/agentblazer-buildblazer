@@ -61,6 +61,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ username, password }),
       });
 
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return {
+          success: false,
+          error: 'Backend API is not reachable. If hosted on Vercel, please set VITE_API_URL in Vercel settings to your deployed backend URL.',
+        };
+      }
+
       const data = await res.json();
       if (res.ok && data.token) {
         setToken(data.token);
@@ -71,8 +79,11 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: data.error || 'Authentication failed' };
       }
-    } catch (err) {
-      return { success: false, error: 'Cannot connect to authentication service.' };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: 'Cannot connect to authentication service. Ensure your backend server is deployed and running.',
+      };
     }
   };
 
