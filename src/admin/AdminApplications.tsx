@@ -120,9 +120,11 @@ export function AdminApplications() {
 
       if (res.ok) {
         const updated = await res.json();
-        setApplications(prev => prev.map(a => (a.id === id ? updated : a)));
-        if (selectedApp && selectedApp.id === id) {
-          setSelectedApp(updated);
+        setApplications(prev =>
+          prev.map(a => (Number(a.id) === Number(id) ? { ...a, ...updated, status: newStatus } : a))
+        );
+        if (selectedApp && Number(selectedApp.id) === Number(id)) {
+          setSelectedApp(prev => (prev ? { ...prev, ...updated, status: newStatus } : null));
         }
 
         const isEmailSent = Boolean(updated.emailSent ?? (updated.email_status === 'sent' || updated.emailResult?.status === 'sent'));

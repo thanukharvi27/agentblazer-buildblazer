@@ -131,9 +131,9 @@ function getTransporter(overrideConfig = null) {
         user: config.user.trim(),
         pass: cleanPass,
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 7000,
     });
   }
 
@@ -148,9 +148,9 @@ function getTransporter(overrideConfig = null) {
         user: config.user.trim(),
         pass: cleanPass,
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 7000,
     });
   }
 
