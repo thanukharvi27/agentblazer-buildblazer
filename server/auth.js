@@ -2,6 +2,20 @@ import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { db } from './database.js';
 
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath) && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(envPath);
+  } catch (e) {}
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'agentblazer-secure-jwt-secret-key-fallback';
 const JWT_EXPIRES_IN = '7d';
 

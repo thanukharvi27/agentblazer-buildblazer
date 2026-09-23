@@ -18,27 +18,62 @@ if (fs.existsSync(envPath) && typeof process.loadEnvFile === 'function') {
 }
 
 /**
+ * Format a non-sensitive error message from an SMTP error object
+ */
+export function formatSmtpError(err) {
+  if (!err) return 'Unknown SMTP error';
+  const msg = err.message || String(err);
+  if (msg.includes('535') || msg.includes('BadCredentials') || msg.includes('Username and Password not accepted')) {
+    return 'Authentication failed (535 BadCredentials): Gmail/SMTP server rejected your credentials. For Gmail, make sure 2-Step Verification is enabled and a 16-character App Password (from myaccount.google.com/apppasswords) is used instead of your account password.';
+  }
+  if (msg.includes('ETIMEDOUT') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND')) {
+    return `Connection error: Could not reach SMTP host (${err.code || 'Network timeout'}). Please check your SMTP host and port.`;
+  }
+  if (msg.includes('EENVELOPE') || msg.includes('No recipients defined')) {
+    return `Invalid email address or envelope format (${err.code || 'Envelope error'}).`;
+  }
+  // Strip any accidental password prints or sensitive stack traces
+  return msg.split('\n')[0].slice(0, 250);
+}
+
+/**
  * Retrieve current email configuration from Database or ENV fallback
  */
 export function getEmailConfig() {
   const getSetting = (key) => {
-    const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
-    return row ? row.value : null;
+    try {
+      const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+      return row ? row.value : null;
+    } catch {
+      return null;
+    }
   };
 
-  const service = getSetting('smtp_service') || process.env.SMTP_SERVICE || '';
-  const host = getSetting('smtp_host') || process.env.SMTP_HOST || '';
-  const port = getSetting('smtp_port') || process.env.SMTP_PORT || '587';
-  const user = getSetting('smtp_user') || process.env.SMTP_USER || '';
-  const pass = getSetting('smtp_pass') || process.env.SMTP_PASS || '';
-  const from = getSetting('smtp_from') || process.env.SMTP_FROM || '"AgentBlazer Club • SJEC CSE" <agentblazer@sjec.ac.in>';
+  const service = (getSetting('smtp_service') || process.env.SMTP_SERVICE || '').trim().toLowerCase();
+  const host = (getSetting('smtp_host') || process.env.SMTP_HOST || '').trim();
+  const port = Number(getSetting('smtp_port') || process.env.SMTP_PORT || '587') || 587;
+  const user = (getSetting('smtp_user') || process.env.SMTP_USER || '').trim();
+  let pass = (getSetting('smtp_pass') || process.env.SMTP_PASS || '').trim();
+  let from = (getSetting('smtp_from') || process.env.SMTP_FROM || '').trim();
+
+  // If service is gmail or host is smtp.gmail.com, remove spaces from App Password (e.g. "abcd efgh ijkl mnop" -> "abcdefghijklmnop")
+  if ((service === 'gmail' || host.includes('gmail.com')) && pass) {
+    pass = pass.replace(/\s+/g, '');
+  }
+
+  // Ensure 'from' header is clean and includes a valid email address
+  if (!from) {
+    from = user ? `"AgentBlazer Club • SJEC CSE" <${user}>` : '"AgentBlazer Club • SJEC CSE" <agentblazer@sjec.ac.in>';
+  } else if (!from.includes('@') && user) {
+    from = `"${from.replace(/"/g, '')}" <${user}>`;
+  }
 
   const isConfigured = Boolean((service || host) && user && pass);
 
   return {
     service,
     host,
-    port: Number(port) || 587,
+    port,
     user,
     pass, // internal
     hasPassword: Boolean(pass),
@@ -61,41 +96,60 @@ export function saveEmailConfig({ service, host, port, user, pass, from }) {
   if (host !== undefined) setSetting.run('smtp_host', host.trim());
   if (port !== undefined) setSetting.run('smtp_port', String(port).trim());
   if (user !== undefined) setSetting.run('smtp_user', user.trim());
-  if (pass !== undefined && pass !== '') setSetting.run('smtp_pass', pass.trim());
+  if (pass !== undefined && pass !== '') {
+    const cleanPass = (service === 'gmail' || (host && host.includes('gmail.com')))
+      ? pass.replace(/\s+/g, '').trim()
+      : pass.trim();
+    setSetting.run('smtp_pass', cleanPass);
+  }
   if (from !== undefined) setSetting.run('smtp_from', from.trim());
 
   return getEmailConfig();
 }
 
 /**
- * Build Nodemailer Transporter based on active config
+ * Build Nodemailer Transporter based on active or provided config
  */
-function getTransporter() {
-  const config = getEmailConfig();
+function getTransporter(overrideConfig = null) {
+  const config = overrideConfig ? { ...getEmailConfig(), ...overrideConfig } : getEmailConfig();
 
-  if (!config.isConfigured) {
+  if (!config.isConfigured && (!config.user || !config.pass)) {
     return null;
   }
 
-  if (config.service && config.user && config.pass) {
+  const cleanPass = config.pass ? config.pass.replace(/\s+/g, '') : '';
+
+  // Gmail SMTP: Host: smtp.gmail.com, Port: 587, Secure: false, requireTLS: true (STARTTLS)
+  if (config.service === 'gmail' || (config.host && config.host.includes('gmail.com'))) {
     return nodemailer.createTransport({
-      service: config.service,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: {
-        user: config.user,
-        pass: config.pass,
+        user: config.user.trim(),
+        pass: cleanPass,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
 
   if (config.host && config.user && config.pass) {
+    const port = Number(config.port) || 587;
     return nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.port === 465,
+      host: config.host.trim(),
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
       auth: {
-        user: config.user,
-        pass: config.pass,
+        user: config.user.trim(),
+        pass: cleanPass,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
 
@@ -105,9 +159,17 @@ function getTransporter() {
 /**
  * Verify transporter connection or send test email
  */
-export async function testEmailConnection(testRecipient = null) {
-  const transporter = getTransporter();
-  const config = getEmailConfig();
+export async function testEmailConnection(testRecipient = null, customConfig = null) {
+  let activeConfig = getEmailConfig();
+  if (customConfig && (customConfig.user || customConfig.pass || customConfig.service || customConfig.host)) {
+    activeConfig = {
+      ...activeConfig,
+      ...customConfig,
+      pass: (customConfig.pass && customConfig.pass.trim() !== '') ? customConfig.pass : activeConfig.pass,
+    };
+  }
+
+  const transporter = getTransporter(activeConfig);
 
   if (!transporter) {
     return {
@@ -121,7 +183,7 @@ export async function testEmailConnection(testRecipient = null) {
 
     if (testRecipient) {
       await transporter.sendMail({
-        from: config.from,
+        from: activeConfig.from,
         to: testRecipient,
         subject: '🧪 AgentBlazer Club Email Verification Test',
         html: `
@@ -130,7 +192,7 @@ export async function testEmailConnection(testRecipient = null) {
             <p>This is a verification test email from the AgentBlazer Club Admin Console.</p>
             <p>All automated approval and rejection notifications to applicants will now be delivered live to their inboxes.</p>
             <hr style="border-color: #334155;" />
-            <small style="color: #94a3b8;">Sent from ${config.from}</small>
+            <small style="color: #94a3b8;">Sent from ${activeConfig.from}</small>
           </div>
         `,
       });
@@ -139,7 +201,9 @@ export async function testEmailConnection(testRecipient = null) {
 
     return { success: true, message: 'SMTP server connection verified successfully.' };
   } catch (err) {
-    return { success: false, error: err.message || 'SMTP Authentication failed' };
+    const errorDetails = formatSmtpError(err);
+    console.error('[SMTP Verification Error]:', errorDetails);
+    return { success: false, error: errorDetails };
   }
 }
 
@@ -269,6 +333,7 @@ export async function sendApplicationStatusEmail(application, status) {
   const transporter = getTransporter();
 
   if (transporter) {
+    console.log(`[SMTP] Attempting to deliver ${status} notification to "${name}" <${email}> via ${config.service || config.host}...`);
     try {
       const info = await transporter.sendMail({
         from: config.from,
@@ -277,17 +342,17 @@ export async function sendApplicationStatusEmail(application, status) {
         html: htmlContent,
       });
       deliveryStatus = 'sent';
-      deliveryDetails = `MessageId: ${info.messageId || 'sent'}`;
-      console.log(`[Email] Successfully delivered ${status} email to ${email} (MessageId: ${info.messageId})`);
+      deliveryDetails = `Delivered via SMTP (MessageId: ${info.messageId || 'sent'})`;
+      console.log(`[SMTP SUCCESS] Delivered ${status} email to <${email}> (MessageId: ${info.messageId})`);
     } catch (err) {
       deliveryStatus = 'failed';
-      deliveryDetails = err.message || 'SMTP transmission error';
-      console.error(`[Email Error] Failed to send via SMTP to ${email}:`, err.message);
+      deliveryDetails = formatSmtpError(err);
+      console.error(`[SMTP ERROR] Failed sending ${status} email to <${email}>:`, deliveryDetails);
     }
   } else {
     deliveryStatus = 'simulated';
-    deliveryDetails = 'SMTP not configured in environment or settings; email notification recorded in database log.';
-    console.log(`[Email Simulated] No SMTP credentials provided. Notification for "${name}" <${email}> recorded.`);
+    deliveryDetails = 'SMTP not configured in environment or settings; notification recorded in database.';
+    console.log(`[SMTP Simulated] No SMTP credentials configured. Notification for "${name}" <${email}> recorded in database.`);
   }
 
   // Record in database email_logs
@@ -297,18 +362,20 @@ export async function sendApplicationStatusEmail(application, status) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(email, name, subject, status, deliveryStatus, deliveryDetails, new Date().toISOString());
 
-    // Update application record
-    db.prepare(`
-      UPDATE membership_applications
-      SET email_notified = 1, email_notified_at = ?
-      WHERE id = ?
-    `).run(new Date().toISOString(), id);
+    // Update application record ONLY IF delivery was actually sent
+    if (deliveryStatus === 'sent') {
+      db.prepare(`
+        UPDATE membership_applications
+        SET email_notified = 1, email_notified_at = ?
+        WHERE id = ?
+      `).run(new Date().toISOString(), id);
+    }
   } catch (err) {
     console.error('[Email DB Log Error]:', err.message);
   }
 
   return {
-    success: deliveryStatus !== 'failed',
+    success: deliveryStatus === 'sent',
     status: deliveryStatus,
     details: deliveryDetails,
     recipient: email,
@@ -362,14 +429,15 @@ export async function sendPasswordResetEmail(recipientEmail, resetCode) {
         subject: `🔐 AgentBlazer Admin Password Reset Code: ${resetCode}`,
         html,
       });
-      console.log(`[Email] Password reset code sent to ${recipientEmail}`);
+      console.log(`[SMTP SUCCESS] Password reset code sent to <${recipientEmail}>`);
       return { success: true };
     } catch (err) {
-      console.error(`[Email Error] Failed to send reset code to ${recipientEmail}:`, err.message);
-      return { success: false, error: err.message };
+      const errorDetails = formatSmtpError(err);
+      console.error(`[SMTP ERROR] Failed to send reset code to <${recipientEmail}>:`, errorDetails);
+      return { success: false, error: errorDetails };
     }
   } else {
-    console.log(`[Email Simulated] SMTP not configured. Reset code for ${recipientEmail}: ${resetCode}`);
+    console.log(`[SMTP Simulated] SMTP not configured. Reset code for ${recipientEmail}: ${resetCode}`);
     return {
       success: true,
       simulated: true,
@@ -378,4 +446,5 @@ export async function sendPasswordResetEmail(recipientEmail, resetCode) {
     };
   }
 }
+
 

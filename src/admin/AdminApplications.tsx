@@ -117,19 +117,21 @@ export function AdminApplications() {
           setSelectedApp(updated);
         }
 
-        const isLive = emailConfig?.isConfigured;
-        if (newStatus === 'approved') {
-          showToast(
-            isLive
-              ? `Application APPROVED! Live email sent to applicant.`
-              : `Application APPROVED! (Logged in DB. Configure Email Setup for real inbox delivery.)`
-          );
-        } else if (newStatus === 'rejected') {
-          showToast(
-            isLive
-              ? `Application REJECTED. Live email sent to applicant.`
-              : `Application REJECTED. (Logged in DB. Configure Email Setup for real inbox delivery.)`
-          );
+        if (newStatus === 'approved' || newStatus === 'rejected') {
+          const actionText = newStatus === 'approved' ? 'APPROVED' : 'REJECTED';
+          if (updated.emailResult?.status === 'sent') {
+            showToast(`Application ${actionText}! Live notification email sent to ${updated.email}.`);
+          } else if (updated.emailResult?.status === 'failed') {
+            const isAuthError = updated.emailResult?.details?.includes('535') || updated.emailResult?.details?.includes('BadCredentials');
+            showToast(
+              isAuthError
+                ? `Application ${actionText} in DB. Note: Email failed (Invalid Gmail App Password). Click Email Settings to update.`
+                : `Application ${actionText} in DB. Note: Email failed (${updated.emailResult.details})`,
+              'error'
+            );
+          } else {
+            showToast(`Application ${actionText}! (SMTP not configured; notification logged in DB.)`);
+          }
         } else {
           showToast(`Application moved back to PENDING review.`);
         }
@@ -156,11 +158,13 @@ export function AdminApplications() {
         if (selectedApp && selectedApp.id === id) {
           setSelectedApp(data.application);
         }
-        showToast(
-          emailConfig?.isConfigured
-            ? 'Live notification email sent to applicant inbox!'
-            : 'Email notification logged in database. Set up SMTP for live inbox delivery.'
-        );
+        if (data.emailResult?.status === 'sent') {
+          showToast('Live notification email sent to applicant inbox!');
+        } else if (data.emailResult?.status === 'failed') {
+          showToast(`Email delivery failed: ${data.emailResult.details}`, 'error');
+        } else {
+          showToast('Email notification logged in database. Set up SMTP for live inbox delivery.');
+        }
       } else {
         showToast(data.error || 'Failed to dispatch email', 'error');
       }
@@ -202,7 +206,10 @@ export function AdminApplications() {
       const res = await authFetch('/api/admin/email-settings/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testRecipient: testRecipient || emailForm.user }),
+        body: JSON.stringify({
+          testRecipient: testRecipient || emailForm.user,
+          ...emailForm,
+        }),
       });
       const data = await res.json();
       setTestResult(data);
@@ -920,6 +927,16 @@ export function AdminApplications() {
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="adm-btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: 12, borderColor: '#38bdf8', color: '#38bdf8' }}
+                        onClick={() => setShowEmailModal(true)}
+                        title="Configure SMTP sender email or Gmail App Password"
+                      >
+                        ⚙️ Email Settings
+                      </button>
+
                       <button
                         type="button"
                         className="adm-btn-secondary"

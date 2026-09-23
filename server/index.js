@@ -15,6 +15,16 @@ import { connectMongo, saveApprovedMember, removeApprovedMember, getApprovedMemb
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load server/.env if present
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath) && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(envPath);
+  } catch (e) {
+    // ignore
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -940,8 +950,8 @@ app.post('/api/admin/email-settings', requireAdminAuth, (req, res) => {
 
 app.post('/api/admin/email-settings/test', requireAdminAuth, async (req, res) => {
   try {
-    const { testRecipient } = req.body;
-    const result = await testEmailConnection(testRecipient);
+    const { testRecipient, ...customConfig } = req.body;
+    const result = await testEmailConnection(testRecipient, customConfig);
     res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

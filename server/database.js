@@ -7,6 +7,16 @@ import crypto from 'node:crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load server/.env if present
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath) && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(envPath);
+  } catch (e) {
+    // ignore
+  }
+}
+
 const dataDir = path.join(__dirname, 'data');
 let dbPath = path.join(dataDir, 'agentblazer.db');
 
