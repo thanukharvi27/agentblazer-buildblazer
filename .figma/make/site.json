@@ -1,5 +1,6 @@
 {
-  "description": "This web application delivers a fully functional, responsive website that mirrors the design of provided screenshots, ensuring a seamless user experience.",
+  "title": "Agent Blazer",
+  "description": "AgentBlazer Club at St Joseph Engineering College - Autonomous AI and Agentforce Community.",
   "robots": {
     "index": false
   },
