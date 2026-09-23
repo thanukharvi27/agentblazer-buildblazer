@@ -17,10 +17,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Uploads directory
-const uploadsDir = path.join(__dirname, 'uploads');
+// Uploads directory — use /tmp/uploads on Vercel serverless
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadsDir = isServerless ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (e) {
+    console.warn('[Uploads] Could not create uploadsDir:', e.message);
+  }
 }
 
 // Multer storage
@@ -65,6 +70,10 @@ app.use(cors({
     if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       return callback(null, true);
     }
+    // Automatically permit any Vercel deployment URL
+    if (/\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
     // Allow local development URLs
     if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       return callback(null, true);
@@ -74,9 +83,32 @@ app.use(cors({
   credentials: true,
 }));
 
+// Serve static uploads
+app.use('/uploads', express.static(uploadsDir));
+if (isServerless) {
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+}
+
+// Lazy / automatic MongoDB connection handler for serverless environments
+let mongoInitPromise = null;
+app.use(async (req, res, next) => {
+  if (isServerless && !isMongoConnected() && process.env.MONGODB_URI) {
+    if (!mongoInitPromise) {
+      mongoInitPromise = connectMongo().finally(() => {
+        mongoInitPromise = null;
+      });
+    }
+    try {
+      await mongoInitPromise;
+    } catch (e) {
+      // non-blocking
+    }
+  }
+  next();
+});
+
 // Body parser limits
 app.use(express.json({ limit: '1mb' }));
-app.use('/uploads', express.static(uploadsDir));
 
 // Rate Limiters
 const generalApiLimiter = rateLimit({
@@ -836,7 +868,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
 });
 
-// Start Server — connect MongoDB first, then listen
+// Start Server — connect MongoDB first, then listen (when running as standalone process)
 async function startServer() {
   await connectMongo();
   app.listen(PORT, () => {
@@ -844,4 +876,19 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start the HTTP listener when run directly (e.g. `node server/index.js`)
+// When imported as a module (e.g. by `api/index.js` for Vercel Serverless), do NOT call app.listen().
+const isMain = Boolean(
+  process.argv[1] && (
+    process.argv[1] === fileURLToPath(import.meta.url) ||
+    process.argv[1].endsWith('server' + path.sep + 'index.js') ||
+    process.argv[1].endsWith('server/index.js')
+  )
+);
+
+if (isMain && !isServerless && process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export default app;
+export { app, startServer };

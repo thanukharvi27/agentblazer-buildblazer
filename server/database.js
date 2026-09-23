@@ -8,11 +8,36 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+let dbPath = path.join(dataDir, 'agentblazer.db');
+
+// In serverless environments like Vercel, the app root is read-only.
+// We copy the bundled seed database to /tmp so SQLite has full read/write capability.
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+if (isServerless) {
+  const tmpDataDir = path.join('/tmp', 'data');
+  if (!fs.existsSync(tmpDataDir)) {
+    try {
+      fs.mkdirSync(tmpDataDir, { recursive: true });
+    } catch (e) {
+      console.warn('[DB] Failed to create /tmp/data directory:', e.message);
+    }
+  }
+  const tmpDbPath = path.join(tmpDataDir, 'agentblazer.db');
+  if (!fs.existsSync(tmpDbPath) && fs.existsSync(dbPath)) {
+    try {
+      fs.copyFileSync(dbPath, tmpDbPath);
+      console.log('[DB] Copied bundled seed database to /tmp/data/agentblazer.db');
+    } catch (err) {
+      console.warn('[DB] Could not copy seed DB to /tmp, will initialize fresh:', err.message);
+    }
+  }
+  dbPath = tmpDbPath;
+} else {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
-const dbPath = path.join(dataDir, 'agentblazer.db');
 export const db = new DatabaseSync(dbPath);
 
 // Initialize Tables
