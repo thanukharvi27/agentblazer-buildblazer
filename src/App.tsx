@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useData } from './context/DataContext';
+import { getApiUrl } from './config/api';
 import logoImg from './assets/AgentBlazer_Logo.png';
 import actualLogo from './assets/agentblazer_actual_logo.png';
 import IntroScreen from './IntroScreen';
@@ -607,7 +608,7 @@ function EventCard({
       </h3>
       {event.tracks && (
         <div className="flex gap-2 flex-wrap">
-          {event.tracks.map(t => (
+          {event.tracks.map((t: string) => (
             <span key={t} className={`badge badge-violet ${isFilled ? 'card-highlight-badge' : ''}`}>{t}</span>
           ))}
         </div>
@@ -2122,7 +2123,7 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
     setErrorMsg(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/membership-applications', {
+      const res = await fetch(getApiUrl('/api/membership-applications'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -2360,7 +2361,7 @@ export default function App() {
   useEffect(() => {
     if (isAdmin) return;
 
-    fetch('/api/public/data')
+    fetch(getApiUrl('/api/public/data'))
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch public data');
         return res.json();

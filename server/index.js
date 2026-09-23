@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import { db } from './database.js';
-import { verifyPassword, createSession, invalidateSession, requireAdminAuth } from './auth.js';
+import { verifyPassword, generateAdminToken, invalidateToken, requireAdminAuth } from './auth.js';
 import { sendApplicationStatusEmail, getEmailConfig, saveEmailConfig, testEmailConnection } from './emailService.js';
 import { connectMongo, saveApprovedMember, removeApprovedMember, getApprovedMembers, isMongoConnected } from './mongoService.js';
 
@@ -37,24 +39,77 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    // SVGs are excluded to prevent Stored XSS attacks via embedded scripts
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPG, PNG, WEBP, GIF, and SVG images are allowed'));
+      cb(new Error('Only JPG, PNG, WEBP, and GIF images are allowed. SVG uploads are disabled for security.'));
     }
   },
 });
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+// Security HTTP headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows frontend to load images from /uploads
+}));
+
+// CORS configuration: restrict origins with safe fallbacks
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    // Allow local development URLs
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+}));
+
+// Body parser limits
+app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(uploadsDir));
+
+// Rate Limiters
+const generalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP. Please try again after 15 minutes.' },
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 login attempts per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please wait 15 minutes before trying again.' },
+});
+
+const formLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 applications per hour per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many membership applications submitted. Please try again later.' },
+});
+
+app.use('/api/', generalApiLimiter);
 
 // ============================================================================
 // AUTHENTICATION
 // ============================================================================
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username/Email and Password are required.' });
@@ -70,17 +125,17 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials.' });
   }
 
-  const session = createSession(admin.id, admin.username);
+  const authResult = generateAdminToken(admin);
   res.json({
-    token: session.token,
+    token: authResult.token,
     user: { id: admin.id, username: admin.username },
-    expiresAt: session.expiresAt,
+    expiresAt: authResult.expiresAt,
   });
 });
 
 app.post('/api/auth/logout', requireAdminAuth, (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '').trim();
-  if (token) invalidateSession(token);
+  const token = req.token || req.headers.authorization?.replace('Bearer ', '').trim();
+  if (token) invalidateToken(token);
   res.json({ success: true });
 });
 
@@ -572,17 +627,31 @@ app.delete('/api/admin/media/:id', requireAdminAuth, (req, res) => {
 // PUBLIC: MEMBERSHIP APPLICATION SUBMISSION
 // ============================================================================
 
-app.post('/api/membership-applications', (req, res) => {
+app.post('/api/membership-applications', formLimiter, (req, res) => {
   try {
     const { name, email, year, message } = req.body;
     if (!name || !email || !year) {
       return res.status(400).json({ error: 'Name, email, and year of study are required.' });
     }
 
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedYear = year.trim();
-    const trimmedMessage = (message || '').trim();
+    const trimmedName = String(name).trim();
+    const trimmedEmail = String(email).trim().toLowerCase();
+    const trimmedYear = String(year).trim();
+    const trimmedMessage = String(message || '').trim();
+
+    // Validation checks
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail) || trimmedEmail.length > 254) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      return res.status(400).json({ error: 'Name must be between 2 and 100 characters.' });
+    }
+
+    if (trimmedMessage.length > 1000) {
+      return res.status(400).json({ error: 'Statement cannot exceed 1000 characters.' });
+    }
 
     const insert = db.prepare(`
       INSERT INTO membership_applications (name, email, year, message, status, created_at)
@@ -753,6 +822,18 @@ app.get('/api/admin/approved-members', requireAdminAuth, async (req, res) => {
     console.error('Error fetching approved members from MongoDB:', err);
     res.status(500).json({ error: 'Failed to fetch approved members.' });
   }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[Error]', err.message);
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({ error: err.message });
+  }
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: `Upload error: ${err.message}` });
+  }
+  res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
 });
 
 // Start Server — connect MongoDB first, then listen

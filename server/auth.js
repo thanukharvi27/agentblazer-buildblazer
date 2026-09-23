@@ -1,8 +1,12 @@
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import { db } from './database.js';
 
-// Active in-memory session tokens: token -> { adminId, username, expiresAt }
-const activeSessions = new Map();
+const JWT_SECRET = process.env.JWT_SECRET || 'agentblazer-secure-jwt-secret-key-fallback';
+const JWT_EXPIRES_IN = '7d';
+
+// In-memory blacklist for revoked tokens (e.g. upon logout)
+const revokedTokens = new Set();
 
 export function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
@@ -13,28 +17,54 @@ export function verifyPassword(password, hash, salt) {
   return crypto.timingSafeEqual(Buffer.from(checkHash, 'hex'), Buffer.from(hash, 'hex'));
 }
 
-export function createSession(adminId, username) {
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-  activeSessions.set(token, { adminId, username, expiresAt });
+/**
+ * Generate a signed JWT token for an admin
+ */
+export function generateAdminToken(admin) {
+  const payload = {
+    id: admin.id,
+    username: admin.username,
+    role: 'admin',
+  };
+
+  const token = jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+    algorithm: 'HS256',
+  });
+
+  const decoded = jwt.decode(token);
+  const expiresAt = decoded && decoded.exp ? decoded.exp * 1000 : Date.now() + 7 * 24 * 60 * 60 * 1000;
+
   return { token, expiresAt };
 }
 
-export function invalidateSession(token) {
-  activeSessions.delete(token);
-}
-
-export function getSession(token) {
-  if (!token) return null;
-  const session = activeSessions.get(token);
-  if (!session) return null;
-  if (Date.now() > session.expiresAt) {
-    activeSessions.delete(token);
-    return null;
+/**
+ * Invalidate a JWT token (logout / revocation)
+ */
+export function invalidateToken(token) {
+  if (token) {
+    revokedTokens.add(token);
   }
-  return session;
 }
 
+// Clean up expired tokens from revocation set periodically (every hour)
+setInterval(() => {
+  const now = Math.floor(Date.now() / 1000);
+  for (const token of revokedTokens) {
+    try {
+      const decoded = jwt.decode(token);
+      if (!decoded || decoded.exp < now) {
+        revokedTokens.delete(token);
+      }
+    } catch {
+      revokedTokens.delete(token);
+    }
+  }
+}, 60 * 60 * 1000).unref();
+
+/**
+ * Middleware: Verify JWT Bearer token and confirm active admin account
+ */
 export function requireAdminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   let token = null;
@@ -45,11 +75,30 @@ export function requireAdminAuth(req, res, next) {
     token = req.cookies.admin_token;
   }
 
-  const session = getSession(token);
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized. Admin session required.' });
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized. Authentication token required.' });
   }
 
-  req.admin = session;
-  next();
+  if (revokedTokens.has(token)) {
+    return res.status(401).json({ error: 'Token has been revoked. Please log in again.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Verify admin account still exists in the database
+    const admin = db.prepare('SELECT id, username FROM admins WHERE id = ?').get(decoded.id);
+    if (!admin) {
+      return res.status(401).json({ error: 'Administrator account not found.' });
+    }
+
+    req.admin = { id: admin.id, username: admin.username };
+    req.token = token;
+    next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
+    }
+    return res.status(401).json({ error: 'Invalid authentication token.' });
+  }
 }

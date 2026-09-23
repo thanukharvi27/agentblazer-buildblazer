@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getApiUrl } from '../config/api';
 
 export interface EventItem {
   id: number | string;
@@ -85,7 +86,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const refreshData = useCallback(async () => {
     try {
-      const res = await fetch('/api/public/data');
+      const res = await fetch(getApiUrl('/api/public/data'));
       if (res.ok) {
         const data = await res.json();
         if (data.events && Array.isArray(data.events)) {

@@ -159,13 +159,15 @@ function hashPassword(password, salt) {
 // Seed default Admin if none exists
 const adminCount = db.prepare('SELECT COUNT(*) as count FROM admins').get().count;
 if (adminCount === 0) {
+  const defaultEmail = (process.env.ADMIN_DEFAULT_EMAIL || 'admin@agentblazer.ac.in').trim().toLowerCase();
+  const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'AgentBlazer@2026';
   const salt = crypto.randomBytes(16).toString('hex');
-  const passwordHash = hashPassword('AgentBlazer@2026', salt);
+  const passwordHash = hashPassword(defaultPassword, salt);
   db.prepare(`
     INSERT INTO admins (username, password_hash, salt, created_at)
     VALUES (?, ?, ?, ?)
-  `).run('admin@agentblazer.ac.in', passwordHash, salt, new Date().toISOString());
-  console.log('[DB] Initial default administrator created: admin@agentblazer.ac.in');
+  `).run(defaultEmail, passwordHash, salt, new Date().toISOString());
+  console.log(`[DB] Initial default administrator created: ${defaultEmail}`);
 }
 
 // Seed Members if empty
