@@ -2159,14 +2159,24 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(queryForm),
       });
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error('Server is not responding. Please make sure the backend server is running.');
+      let data: any = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
       }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit inquiry.');
+        if (res.status === 404) {
+          throw new Error('Backend inquiries endpoint not found (404). Please trigger "Deploy latest commit" on Render.');
+        }
+        if (res.status === 502 || res.status === 503) {
+          throw new Error('Backend server on Render is waking up. Please wait 30 seconds and try submitting again.');
+        }
+        throw new Error(data.error || `Server responded with status ${res.status}.`);
       }
       setQuerySubmitted(true);
     } catch (err: any) {
@@ -2188,14 +2198,21 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      let data: any;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error('Server is not responding. Please make sure the backend server is running.');
+      let data: any = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
       }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit application.');
+        if (res.status === 502 || res.status === 503) {
+          throw new Error('Backend server on Render is waking up. Please wait 30 seconds and try submitting again.');
+        }
+        throw new Error(data.error || `Server responded with status ${res.status}.`);
       }
       setSubmitted(true);
     } catch (err: any) {
