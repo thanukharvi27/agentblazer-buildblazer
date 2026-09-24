@@ -68,7 +68,8 @@ export function getEmailConfig() {
     from = `"${from.replace(/"/g, '')}" <${user}>`;
   }
 
-  const isConfigured = Boolean((service || host) && user && pass);
+  const isPlaceholder = !pass || pass === 'your-16-character-app-password' || pass.includes('app-password');
+  const isConfigured = Boolean((service || host) && user && pass && !isPlaceholder);
 
   return {
     service,
@@ -76,7 +77,7 @@ export function getEmailConfig() {
     port,
     user,
     pass, // internal
-    hasPassword: Boolean(pass),
+    hasPassword: Boolean(pass && !isPlaceholder),
     from,
     isConfigured,
   };
@@ -114,7 +115,7 @@ export function saveEmailConfig({ service, host, port, user, pass, from }) {
 function getTransporter(overrideConfig = null) {
   const config = overrideConfig ? { ...getEmailConfig(), ...overrideConfig } : getEmailConfig();
 
-  if (!config.isConfigured && (!config.user || !config.pass)) {
+  if (!config.isConfigured || !config.user || !config.pass) {
     return null;
   }
 
@@ -393,7 +394,7 @@ export async function sendApplicationStatusEmail(application, status) {
     status: deliveryStatus,
     emailStatus: deliveryStatus,
     details: deliveryDetails,
-    emailError: deliveryStatus !== 'sent' ? deliveryDetails : null,
+    emailError: deliveryStatus === 'failed' ? deliveryDetails : null,
     recipient: email,
     subject,
   };
@@ -461,6 +462,137 @@ export async function sendPasswordResetEmail(recipientEmail, resetCode) {
       note: 'SMTP not configured; code printed to server console.',
     };
   }
+}
+
+/**
+ * Send an email response to a student/visitor query
+ * @param {Object} queryRecord - { id, name, email, year, query }
+ * @param {string} replyMessage - Admin response message
+ */
+export async function sendQueryReplyEmail(queryRecord, replyMessage) {
+  const { id, name, email, year, query } = queryRecord;
+  const config = getEmailConfig();
+  const subject = `Response to your Inquiry: Department of CSE • AgentBlazer Club`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; color: #f3f4f6; margin: 0; padding: 24px; }
+    .container { max-width: 600px; margin: 0 auto; background: #131b2e; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 28px 24px; text-align: center; border-bottom: 2px solid #38bdf8; }
+    .badge { display: inline-block; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; font-size: 11px; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; margin-bottom: 10px; }
+    .title { font-size: 20px; font-weight: 800; color: #ffffff; margin: 0; }
+    .sub { font-size: 13px; color: #94a3b8; margin: 4px 0 0 0; }
+    .content { padding: 28px 24px; line-height: 1.7; color: #cbd5e1; font-size: 14px; }
+    .query-box { background: rgba(30, 41, 59, 0.6); border-left: 4px solid #64748b; padding: 14px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+    .reply-box { background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10b981; padding: 16px 18px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+    .box-label { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .footer { background: #0b0f19; padding: 18px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #1e293b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">Inquiry Response</div>
+      <h1 class="title">Department of Computer Science &amp; Engineering</h1>
+      <p class="sub">St Joseph Engineering College, Mangaluru • AgentBlazer Club</p>
+    </div>
+    <div class="content">
+      <p>Dear <strong>${name}</strong>${year ? ` (${year})` : ''},</p>
+      <p>Thank you for reaching out to the Department of Computer Science &amp; Engineering (AgentBlazer Club) at St Joseph Engineering College. Here is the response to your inquiry:</p>
+
+      <div class="query-box">
+        <div class="box-label" style="color: #94a3b8;">Your Original Inquiry:</div>
+        <div style="color: #e2e8f0; font-style: italic;">"${query}"</div>
+      </div>
+
+      <div class="reply-box">
+        <div class="box-label" style="color: #34d399;">Response from CSE / AgentBlazer Team:</div>
+        <div style="color: #f1f5f9; white-space: pre-wrap; font-size: 14px;">${replyMessage}</div>
+      </div>
+
+      <p style="margin-top: 24px;">If you have any further questions or follow-up inquiries, feel free to reply directly to this email or visit our department.</p>
+
+      <p style="margin-top: 24px; color: #94a3b8;">
+        Warm regards,<br/>
+        <strong style="color: #f1f5f9;">Department of Computer Science &amp; Engineering</strong><br/>
+        St Joseph Engineering College, Vamanjoor, Mangaluru – 575028<br/>
+        Direct inquiries: <a href="mailto:agentblazer@sjec.ac.in" style="color: #38bdf8;">agentblazer@sjec.ac.in</a>
+      </p>
+    </div>
+    <div class="footer">
+      AgentBlazer Club • Dept of CSE • St Joseph Engineering College, Mangaluru<br/>
+      This email was dispatched via the AgentBlazer Admin Portal.
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  let deliveryStatus = 'simulated';
+  let deliveryDetails = '';
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    console.log(`[SMTP] Attempting to deliver query reply to "${name}" <${email}> via ${config.service || config.host}...`);
+    try {
+      const info = await transporter.sendMail({
+        from: config.from,
+        to: email,
+        subject,
+        html,
+      });
+      deliveryStatus = 'sent';
+      deliveryDetails = `Delivered via SMTP (MessageId: ${info.messageId || 'sent'})`;
+      console.log(`[SMTP SUCCESS] Delivered query reply to <${email}> (MessageId: ${info.messageId})`);
+    } catch (err) {
+      deliveryStatus = 'failed';
+      deliveryDetails = formatSmtpError(err);
+      console.error(`[SMTP ERROR] Failed sending query reply to <${email}>:`, deliveryDetails);
+    }
+  } else {
+    deliveryStatus = 'simulated';
+    deliveryDetails = 'SMTP not configured in environment or settings; response recorded in database.';
+    console.log(`[SMTP Simulated] SMTP not configured. Response for "${name}" <${email}> recorded in database.`);
+  }
+
+  // Record in database email_logs & queries table
+  try {
+    db.prepare(`
+      INSERT INTO email_logs (recipient_email, recipient_name, subject, type, status, details, created_at)
+      VALUES (?, ?, ?, 'query_reply', ?, ?, ?)
+    `).run(email, name, subject, deliveryStatus, deliveryDetails, new Date().toISOString());
+
+    db.prepare(`
+      UPDATE queries
+      SET admin_reply = ?,
+          status = 'replied',
+          replied_at = ?,
+          reply_email_status = ?,
+          reply_email_error = ?
+      WHERE id = ?
+    `).run(
+      replyMessage,
+      new Date().toISOString(),
+      deliveryStatus,
+      deliveryStatus === 'failed' ? deliveryDetails : null,
+      id
+    );
+  } catch (err) {
+    console.error('[Query DB Update Error]:', err.message);
+  }
+
+  return {
+    success: deliveryStatus === 'sent' || deliveryStatus === 'simulated',
+    emailSent: deliveryStatus === 'sent',
+    emailStatus: deliveryStatus,
+    emailError: deliveryStatus === 'failed' ? deliveryDetails : null,
+    details: deliveryDetails,
+  };
 }
 
 

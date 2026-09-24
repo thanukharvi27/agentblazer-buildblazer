@@ -9,6 +9,8 @@ interface Stats {
   totalGuests: number;
   totalApplications?: number;
   pendingApplications?: number;
+  totalQueries?: number;
+  pendingQueries?: number;
 }
 
 export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) {
@@ -41,7 +43,7 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
           Overview &amp; Content Status
         </h1>
         <p style={{ color: 'var(--adm-text-muted)', fontSize: 14, margin: 0 }}>
-          Manage your club members, membership applications, workshop masterclasses, galleries, and public announcements.
+          Manage your club members, membership applications, inquiries, workshop masterclasses, galleries, and public announcements.
         </p>
       </div>
 
@@ -64,6 +66,29 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
               {(stats?.pendingApplications ?? 0) > 0 && (
                 <span className="adm-badge adm-badge-orange" style={{ fontSize: 11 }}>
                   {stats?.pendingApplications} pending
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="adm-stat-card"
+          onClick={() => setTab('queries')}
+          style={{ cursor: 'pointer', transition: 'border-color 0.2s', border: stats?.pendingQueries ? '1px solid rgba(245, 158, 11, 0.4)' : undefined }}
+        >
+          <div className="adm-stat-icon" style={{ background: 'rgba(147, 51, 234, 0.15)', color: '#c084fc' }}>
+            💬
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--adm-text-dim)', fontWeight: 600, textTransform: 'uppercase' }}>
+              Inquiries &amp; Queries
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{loading ? '...' : stats?.totalQueries ?? 0}</span>
+              {(stats?.pendingQueries ?? 0) > 0 && (
+                <span className="adm-badge adm-badge-orange" style={{ fontSize: 11 }}>
+                  {stats?.pendingQueries} pending
                 </span>
               )}
             </div>
@@ -134,6 +159,17 @@ export function AdminDashboard({ setTab }: { setTab: (tab: AdminTab) => void }) 
           <button className="adm-btn-primary" onClick={() => setTab('create-event')} style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
             <span>➕</span>
             <span>Create New Event (+New)</span>
+          </button>
+          <button
+            className="adm-btn-primary"
+            onClick={() => setTab('queries')}
+            style={{
+              background: 'linear-gradient(135deg, #9333ea, #7c3aed)',
+              boxShadow: '0 4px 14px rgba(147, 51, 234, 0.4)',
+            }}
+          >
+            <span>💬</span>
+            <span>View &amp; Reply to Queries {(stats?.pendingQueries ?? 0) > 0 ? `(${stats?.pendingQueries} New)` : ''}</span>
           </button>
           <button className="adm-btn-primary" onClick={() => setTab('applications')} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
             <span>📝</span>

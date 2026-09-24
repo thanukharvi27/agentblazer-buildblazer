@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import { db } from './database.js';
 import { verifyPassword, hashPassword, generateAdminToken, invalidateToken, requireAdminAuth } from './auth.js';
-import { sendApplicationStatusEmail, sendPasswordResetEmail, getEmailConfig, saveEmailConfig, testEmailConnection } from './emailService.js';
+import { sendApplicationStatusEmail, sendPasswordResetEmail, getEmailConfig, saveEmailConfig, testEmailConnection, sendQueryReplyEmail } from './emailService.js';
 import { connectMongo, saveApprovedMember, removeApprovedMember, getApprovedMembers, isMongoConnected } from './mongoService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -352,6 +352,8 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
   const guestCount = db.prepare('SELECT COUNT(*) as c FROM guests').get().c;
   const totalApps = db.prepare('SELECT COUNT(*) as c FROM membership_applications').get().c;
   const pendingApps = db.prepare("SELECT COUNT(*) as c FROM membership_applications WHERE status = 'pending'").get().c;
+  const totalQueries = db.prepare('SELECT COUNT(*) as c FROM queries').get().c;
+  const pendingQueries = db.prepare("SELECT COUNT(*) as c FROM queries WHERE status = 'pending'").get().c;
 
   res.json({
     totalMembers: memberCount,
@@ -360,6 +362,8 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
     totalGuests: guestCount,
     totalApplications: totalApps,
     pendingApplications: pendingApps,
+    totalQueries,
+    pendingQueries,
   });
 });
 
@@ -996,6 +1000,124 @@ app.get('/api/admin/approved-members', requireAdminAuth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching approved members from MongoDB:', err);
     res.status(500).json({ error: 'Failed to fetch approved members.' });
+  }
+});
+
+// ============================================================================
+// PUBLIC: CSE DEPARTMENT INQUIRIES / QUERIES SUBMISSION
+// ============================================================================
+
+app.post('/api/queries', formLimiter, (req, res) => {
+  try {
+    const { name, email, year, query } = req.body;
+    if (!name || !email || !year || !query) {
+      return res.status(400).json({ error: 'Name, email, year of study, and inquiry query are required.' });
+    }
+
+    const trimmedName = String(name).trim();
+    const trimmedEmail = String(email).trim().toLowerCase();
+    const trimmedYear = String(year).trim();
+    const trimmedQuery = String(query).trim();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail) || trimmedEmail.length > 254) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      return res.status(400).json({ error: 'Name must be between 2 and 100 characters.' });
+    }
+
+    if (trimmedQuery.length < 5 || trimmedQuery.length > 3000) {
+      return res.status(400).json({ error: 'Inquiry query must be between 5 and 3000 characters.' });
+    }
+
+    const insert = db.prepare(`
+      INSERT INTO queries (name, email, year, query, status, created_at)
+      VALUES (?, ?, ?, ?, 'pending', ?)
+    `);
+
+    const result = insert.run(trimmedName, trimmedEmail, trimmedYear, trimmedQuery, new Date().toISOString());
+
+    res.status(201).json({
+      success: true,
+      message: 'Inquiry submitted successfully. CSE Department coordinators will respond via email shortly.',
+      id: result.lastInsertRowid,
+    });
+  } catch (err) {
+    console.error('Error submitting inquiry query:', err);
+    res.status(500).json({ error: 'Failed to submit inquiry. Please try again.' });
+  }
+});
+
+// ============================================================================
+// ADMIN: QUERIES MANAGEMENT & EMAIL REPLIES
+// ============================================================================
+
+app.get('/api/admin/queries', requireAdminAuth, (req, res) => {
+  try {
+    const queries = db.prepare('SELECT * FROM queries ORDER BY id DESC').all();
+    res.json(queries);
+  } catch (err) {
+    console.error('Error fetching queries:', err);
+    res.status(500).json({ error: 'Failed to fetch queries.' });
+  }
+});
+
+app.post('/api/admin/queries/:id/reply', requireAdminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reply } = req.body;
+
+    if (!reply || !String(reply).trim()) {
+      return res.status(400).json({ error: 'Reply message cannot be empty.' });
+    }
+
+    const queryRecord = db.prepare('SELECT * FROM queries WHERE id = ?').get(id);
+    if (!queryRecord) {
+      return res.status(404).json({ error: 'Inquiry query not found.' });
+    }
+
+    const emailResult = await sendQueryReplyEmail(queryRecord, String(reply).trim());
+    const updated = db.prepare('SELECT * FROM queries WHERE id = ?').get(id);
+
+    res.json({
+      success: true,
+      query: updated,
+      emailResult,
+    });
+  } catch (err) {
+    console.error('Error sending query reply:', err);
+    res.status(500).json({ error: 'Failed to dispatch reply.' });
+  }
+});
+
+app.patch('/api/admin/queries/:id/status', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validStatuses = ['pending', 'resolved', 'replied'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be pending, resolved, or replied.' });
+    }
+
+    db.prepare('UPDATE queries SET status = ? WHERE id = ?').run(status, id);
+    const updated = db.prepare('SELECT * FROM queries WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating query status:', err);
+    res.status(500).json({ error: 'Failed to update query status.' });
+  }
+});
+
+app.delete('/api/admin/queries/:id', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('DELETE FROM queries WHERE id = ?').run(id);
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error deleting query:', err);
+    res.status(500).json({ error: 'Failed to delete query.' });
   }
 });
 

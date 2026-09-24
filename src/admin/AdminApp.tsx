@@ -10,6 +10,7 @@ import { AdminAboutUs } from './AdminAboutUs';
 import { AdminMedia } from './AdminMedia';
 import { AdminApplications } from './AdminApplications';
 import { AdminCreateEvent } from './AdminCreateEvent';
+import { AdminQueries } from './AdminQueries';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -74,7 +75,29 @@ class AdminTabErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBou
 
 function AdminContent() {
   const { isAuthenticated, isLoading } = useAdminAuth();
-  const [currentTab, setTab] = useState<AdminTab>('dashboard');
+
+  const getInitialTab = (): AdminTab => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab') as AdminTab;
+      const validTabs: AdminTab[] = ['dashboard', 'applications', 'queries', 'create-event', 'events', 'about', 'members', 'media'];
+      if (tabParam && validTabs.includes(tabParam)) {
+        return tabParam;
+      }
+    }
+    return 'dashboard';
+  };
+
+  const [currentTab, setCurrentTabState] = useState<AdminTab>(getInitialTab);
+
+  const setTab = (newTab: AdminTab) => {
+    setCurrentTabState(newTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', newTab);
+      window.history.replaceState(null, '', url.toString());
+    }
+  };
 
   if (isLoading) {
     return (
@@ -97,6 +120,7 @@ function AdminContent() {
         {currentTab === 'dashboard' && <AdminDashboard setTab={setTab} />}
         {currentTab === 'create-event' && <AdminCreateEvent setTab={setTab} />}
         {currentTab === 'applications' && <AdminApplications />}
+        {currentTab === 'queries' && <AdminQueries />}
         {currentTab === 'about' && <AdminAboutUs />}
         {currentTab === 'members' && <AdminMembers />}
         {currentTab === 'events' && <AdminEvents setTab={setTab} />}

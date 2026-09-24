@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import { AdminTab } from './AdminLayout';
-import { getApiUrl } from '../config/api';
+import { getApiUrl, getMediaUrl } from '../config/api';
 
 export const apiUrl = (input: string) => {
   return getApiUrl(input);
@@ -441,7 +441,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
                       }}
                       onMouseEnter={() => setActivePreviewImage(url)}
                     >
-                      <img src={url} alt={`Upload ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={getMediaUrl(url)} alt={`Upload ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <button
                         type="button"
                         onClick={() => removeGalleryImage(idx)}
@@ -606,7 +606,7 @@ export function CreateNewEventSection({ onSuccess, setTab }: CreateNewEventSecti
             {form.gallery.length > 0 && (
               <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', maxHeight: 160, position: 'relative' }}>
                 <img
-                  src={activePreviewImage || form.gallery[0]}
+                  src={getMediaUrl(activePreviewImage || form.gallery[0])}
                   alt="Gallery preview"
                   style={{ width: '100%', height: 160, objectFit: 'cover' }}
                 />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
+import { getMediaUrl } from '../config/api';
 
 export interface EventItem {
   id: number;
@@ -671,7 +672,7 @@ export function AdminEvents({ setTab }: { setTab?: (tab: any) => void }) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 10, maxHeight: 200, overflowY: 'auto', padding: 8, background: '#0b1120', borderRadius: 8 }}>
                       {form.gallery.map((imgUrl, idx) => (
                         <div key={idx} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--adm-border)', height: 70 }}>
-                          <img src={imgUrl} alt={`Gallery ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={getMediaUrl(imgUrl)} alt={`Gallery ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <button
                             type="button"
                             onClick={() => removeGalleryImage(idx)}

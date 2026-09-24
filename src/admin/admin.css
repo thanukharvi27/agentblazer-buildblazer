@@ -55,6 +55,7 @@
 
 .adm-input {
   width: 100%;
+  color-scheme: dark;
   background: #0b1120;
   border: 1px solid var(--adm-border);
   border-radius: 8px;
@@ -63,6 +64,12 @@
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.adm-input option,
+select.adm-input option {
+  background-color: #0b1120 !important;
+  color: #f8fafc !important;
 }
 
 .adm-input:focus {

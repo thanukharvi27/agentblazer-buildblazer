@@ -160,6 +160,20 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS queries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    year TEXT NOT NULL,
+    query TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    admin_reply TEXT,
+    replied_at TEXT,
+    reply_email_status TEXT,
+    reply_email_error TEXT,
+    created_at TEXT NOT NULL
+  );
 `);
 
 // Safe migrations for columns if table already exists

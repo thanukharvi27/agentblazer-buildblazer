@@ -958,7 +958,7 @@ export function AdminApplications() {
                         type="button"
                         className="adm-btn-secondary"
                         style={{ padding: '6px 12px', fontSize: 12, borderColor: '#38bdf8', color: '#38bdf8' }}
-                        onClick={() => setShowEmailModal(true)}
+                        onClick={() => setIsEmailModalOpen(true)}
                         title="Configure SMTP sender email or Gmail App Password"
                       >
                         ⚙️ Email Settings

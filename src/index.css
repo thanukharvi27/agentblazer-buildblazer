@@ -8,6 +8,7 @@
 :root,
 [data-theme="violet"],
 .theme-violet {
+  color-scheme: dark;
   --bg-primary: #05040a;
   --bg-secondary: #090612;
   --surface: rgba(16, 11, 28, 0.7);
@@ -222,6 +223,59 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   transition: background-color 0.45s ease, color 0.45s ease;
+}
+
+/* ==========================================================================
+   FORM CONTROLS & DROPDOWN STYLING
+   ========================================================================== */
+.input,
+select,
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  color-scheme: dark;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus,
+select:focus,
+textarea:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: var(--neon-primary, #a855f7);
+  box-shadow: 0 0 0 2px var(--ambient-1, rgba(168, 85, 247, 0.25));
+}
+
+select {
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+/* Fix for browser dropdown options appearing white-on-white / blank */
+select option {
+  background-color: #120a21 !important;
+  color: #f1f5f9 !important;
+  padding: 10px 14px;
+}
+
+[data-theme="inferno"] select option,
+.theme-inferno select option {
+  background-color: #1a0805 !important;
+  color: #fff7ed !important;
+}
+
+[data-theme="cyan"] select option,
+.theme-cyan select option {
+  background-color: #061524 !important;
+  color: #f0f9ff !important;
 }
 
 /* Smooth color transitions for themed elements without disrupting animations */

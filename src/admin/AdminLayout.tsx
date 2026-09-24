@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import actualLogo from '../assets/agentblazer_actual_logo.png';
 
-export type AdminTab = 'dashboard' | 'applications' | 'create-event' | 'events' | 'about' | 'members' | 'media';
+export type AdminTab = 'dashboard' | 'applications' | 'queries' | 'create-event' | 'events' | 'about' | 'members' | 'media';
 
 interface AdminLayoutProps {
   currentTab: AdminTab;
@@ -19,6 +19,7 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
     { id: 'create-event', label: 'Create New Event', icon: '➕', badge: '+New' },
     { id: 'events', label: 'Events & Workshops', icon: '🗓️' },
     { id: 'applications', label: 'Membership Applications', icon: '📝' },
+    { id: 'queries', label: 'Queries & Inquiries', icon: '💬', badge: 'Active' },
     { id: 'about', label: 'About Us Management', icon: '🏛️' },
     { id: 'members', label: 'Members Management', icon: '👥' },
     { id: 'media', label: 'Media & Image Library', icon: '🖼️' },
@@ -160,7 +161,29 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => setTab('queries')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: currentTab === 'queries' ? 700 : 600,
+                background: currentTab === 'queries' ? 'linear-gradient(135deg, #9333ea, #7c3aed)' : 'rgba(147, 51, 234, 0.15)',
+                color: currentTab === 'queries' ? '#ffffff' : '#c084fc',
+                border: '1px solid rgba(147, 51, 234, 0.4)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              title="View & Reply to Student Queries"
+            >
+              <span>💬</span>
+              <span>Queries</span>
+            </button>
+
             <a
               href="/"
               target="_blank"
@@ -174,6 +197,77 @@ export function AdminLayout({ currentTab, setTab, children }: AdminLayoutProps) 
             </a>
           </div>
         </header>
+
+        {/* Horizontal Quick-Tab Navigation Bar - visible on all screen sizes */}
+        <div
+          className="adm-quick-nav-bar"
+          style={{
+            background: '#0d1527',
+            borderBottom: '1px solid var(--adm-border)',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {navItems.map((item) => {
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setTab(item.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: isActive ? 700 : 500,
+                  background: isActive
+                    ? item.id === 'queries'
+                      ? 'linear-gradient(135deg, #9333ea, #7c3aed)'
+                      : 'rgba(56, 189, 248, 0.18)'
+                    : 'rgba(255, 255, 255, 0.04)',
+                  color: isActive
+                    ? '#ffffff'
+                    : item.id === 'queries'
+                    ? '#d8b4fe'
+                    : 'var(--adm-text-muted)',
+                  border: isActive
+                    ? item.id === 'queries'
+                      ? '1px solid #c084fc'
+                      : '1px solid rgba(56, 189, 248, 0.5)'
+                    : '1px solid var(--adm-border)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                }}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+                {item.id === 'queries' && (
+                  <span
+                    style={{
+                      background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(168, 85, 247, 0.3)',
+                      color: isActive ? '#ffffff' : '#c084fc',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                    }}
+                  >
+                    Active
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Body */}
         <main className="adm-main-body">{children}</main>

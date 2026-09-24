@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useData } from './context/DataContext';
-import { getApiUrl } from './config/api';
+import { getApiUrl, getMediaUrl } from './config/api';
 import logoImg from './assets/AgentBlazer_Logo.png';
 import actualLogo from './assets/agentblazer_actual_logo.png';
 import IntroScreen from './IntroScreen';
@@ -2118,6 +2118,11 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isCseHighlighted, setIsCseHighlighted] = useState(false);
   const [isCseHovered, setIsCseHovered] = useState(false);
+  const [showQueryForm, setShowQueryForm] = useState(false);
+  const [queryForm, setQueryForm] = useState({ name: '', email: '', year: '1st Year', query: '' });
+  const [querySubmitted, setQuerySubmitted] = useState(false);
+  const [querySubmitting, setQuerySubmitting] = useState(false);
+  const [queryErrorMsg, setQueryErrorMsg] = useState<string | null>(null);
   const cseCardRef = useRef<HTMLDivElement>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2131,13 +2136,44 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
 
   const handleContactCseClick = () => {
     setIsCseHighlighted(true);
-    cseCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setShowQueryForm(true);
+    setTimeout(() => {
+      cseCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
     if (highlightTimeoutRef.current) {
       clearTimeout(highlightTimeoutRef.current);
     }
     highlightTimeoutRef.current = setTimeout(() => {
       setIsCseHighlighted(false);
     }, 6000);
+  };
+
+  const handleQuerySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setQueryErrorMsg(null);
+    setQuerySubmitting(true);
+    try {
+      const res = await fetch(getApiUrl('/api/queries'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(queryForm),
+      });
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server is not responding. Please make sure the backend server is running.');
+      }
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit inquiry.');
+      }
+      setQuerySubmitted(true);
+    } catch (err: any) {
+      setQueryErrorMsg(err.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setQuerySubmitting(false);
+    }
   };
 
   const isCardActive = isCseHighlighted || isCseHovered;
@@ -2304,8 +2340,235 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
                   agentblazer@sjec.ac.in
                 </a>
               </div>
+
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowQueryForm((prev) => !prev);
+                  }}
+                  className="btn-outline"
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: 12,
+                    borderRadius: 8,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    borderColor: showQueryForm ? 'var(--accent-cyan)' : 'rgba(56, 189, 248, 0.3)',
+                    color: showQueryForm ? 'var(--accent-cyan)' : 'var(--text-primary)',
+                    background: showQueryForm ? 'rgba(34, 211, 238, 0.1)' : 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>{showQueryForm ? '✕ Close Form' : '💬 Ask a Question / Submit Query'}</span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Inquiry Form Inside CSE Card */}
+          {showQueryForm && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                marginTop: 20,
+                paddingTop: 20,
+                borderTop: '1px solid rgba(56, 189, 248, 0.25)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Inquiry to CSE Department
+                  </h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                    Send questions directly to faculty coordinators &amp; student leads.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowQueryForm(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                  }}
+                  title="Close form"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {querySubmitted ? (
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: 12,
+                    padding: '20px 16px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
+                    Inquiry Received!
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+                    Thank you, <strong>{queryForm.name}</strong>! Your inquiry has been forwarded to the CSE department &amp; AgentBlazer team. A response will be sent to <strong>{queryForm.email}</strong>.
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8 }}
+                      onClick={() => {
+                        setQuerySubmitted(false);
+                        setQueryForm(prev => ({ ...prev, query: '' }));
+                      }}
+                    >
+                      Ask Another Question
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8 }}
+                      onClick={() => setShowQueryForm(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleQuerySubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {queryErrorMsg && (
+                    <div
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#f87171',
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                    >
+                      ⚠️ {queryErrorMsg}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+                        Your Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="input"
+                        placeholder="e.g. Rahul Sharma"
+                        value={queryForm.name}
+                        onChange={e => setQueryForm({ ...queryForm, name: e.target.value })}
+                        style={{ width: '100%', fontSize: 13, padding: '8px 12px' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        className="input"
+                        placeholder="e.g. rahul@sjec.ac.in"
+                        value={queryForm.email}
+                        onChange={e => setQueryForm({ ...queryForm, email: e.target.value })}
+                        style={{ width: '100%', fontSize: 13, padding: '8px 12px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+                      Year of Study *
+                    </label>
+                    <select
+                      className="input"
+                      value={queryForm.year}
+                      onChange={e => setQueryForm({ ...queryForm, year: e.target.value })}
+                      style={{
+                        width: '100%',
+                        fontSize: 13,
+                        padding: '8px 12px',
+                        backgroundColor: 'rgba(25, 18, 45, 0.95)',
+                        color: '#ffffff',
+                        border: '1px solid var(--border-medium)',
+                        borderRadius: 8,
+                        colorScheme: 'dark',
+                      }}
+                    >
+                      <option value="1st Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>1st Year B.E. (CSE)</option>
+                      <option value="2nd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>2nd Year B.E. (CSE)</option>
+                      <option value="3rd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>3rd Year B.E. (CSE)</option>
+                      <option value="4th Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>4th Year B.E. (CSE)</option>
+                      <option value="Other Branch" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Other Engineering Branch</option>
+                      <option value="Faculty / Staff" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Faculty / Staff Member</option>
+                      <option value="Alumni / Visitor" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Alumni / Visitor</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+                      Your Query / Question *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      className="input"
+                      placeholder="Type your query or question here..."
+                      value={queryForm.query}
+                      onChange={e => setQueryForm({ ...queryForm, query: e.target.value })}
+                      style={{ width: '100%', fontSize: 13, padding: '8px 12px', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={() => setShowQueryForm(false)}
+                      style={{ padding: '8px 16px', fontSize: 12, borderRadius: 8 }}
+                      disabled={querySubmitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      style={{ padding: '8px 20px', fontSize: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}
+                      disabled={querySubmitting}
+                    >
+                      {querySubmitting ? (
+                        <>
+                          <span>⏳</span>
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🚀</span>
+                          <span>Submit Query</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         <div id="join-form" className="card p-5 sm:p-8 w-full max-w-xl">
@@ -2414,13 +2677,26 @@ function Footer({ setPage }: { setPage: (p: Page) => void }) {
             { label: 'About & Charter', page: 'about' },
             { label: 'Workshops & Contests', page: 'events' },
             { label: 'Upcoming Events', page: 'upcoming' },
-            { label: 'Salesforce Trailhead Community', page: null },
+            { label: 'Become a Member', page: 'join' },
+            { label: 'Admin Portal 🔒', href: '/admin' },
+            { label: 'Inquiries & Queries (Admin) 💬', href: '/admin?tab=queries' },
           ].map(l => (
             <div key={l.label} style={{ marginBottom: 8 }}>
-              <span
-                style={{ color: l.page ? 'var(--accent-cyan)' : 'var(--text-muted)', fontSize: 13, cursor: l.page ? 'pointer' : 'default' }}
-                onClick={() => l.page && setPage(l.page as Page)}
-              >{l.label}</span>
+              {'href' in l && l.href ? (
+                <a
+                  href={l.href}
+                  style={{ color: '#c084fc', fontSize: 13, textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                >
+                  {l.label}
+                </a>
+              ) : (
+                <span
+                  style={{ color: l.page ? 'var(--accent-cyan)' : 'var(--text-muted)', fontSize: 13, cursor: l.page ? 'pointer' : 'default' }}
+                  onClick={() => l.page && setPage(l.page as Page)}
+                >{l.label}</span>
+              )}
             </div>
           ))}
         </div>
@@ -2486,9 +2762,9 @@ export default function App() {
           const mappedEvents = data.events.map((e: any) => {
             let hoverImages: string[] | null = null;
             if (Array.isArray(e.gallery) && e.gallery.length > 0) {
-              hoverImages = e.gallery;
+              hoverImages = e.gallery.map((img: string) => getMediaUrl(img));
             } else if (e.cover_image) {
-              hoverImages = [e.cover_image];
+              hoverImages = [getMediaUrl(e.cover_image)];
             } else if (FALLBACK_EVENT_GALLERIES[e.title]) {
               hoverImages = FALLBACK_EVENT_GALLERIES[e.title];
             }
@@ -2524,7 +2800,7 @@ export default function App() {
               title: m.title || 'Faculty Coordinator',
               titleClass: m.title_class || 'badge-violet',
               description: m.description || '',
-              image: m.image_url || FALLBACK_MEMBER_IMAGES[m.name] || undefined,
+              image: m.image_url ? getMediaUrl(m.image_url) : (FALLBACK_MEMBER_IMAGES[m.name] || undefined),
             })));
           }
 
@@ -2537,7 +2813,7 @@ export default function App() {
               titleClass: m.title_class || 'badge-green',
               description: m.description || '',
               highlighted: Boolean(m.highlighted),
-              image: m.image_url || FALLBACK_MEMBER_IMAGES[m.name] || undefined,
+              image: m.image_url ? getMediaUrl(m.image_url) : (FALLBACK_MEMBER_IMAGES[m.name] || undefined),
             })));
           }
 

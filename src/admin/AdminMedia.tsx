@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
+import { getMediaUrl } from '../config/api';
 
 export interface MediaItem {
   id: number;
@@ -193,7 +194,7 @@ export function AdminMedia() {
             >
               <div style={{ width: '100%', height: 140, background: '#0b1120', position: 'relative' }}>
                 <img
-                  src={item.url}
+                  src={getMediaUrl(item.url)}
                   alt={item.original_name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   loading="lazy"
