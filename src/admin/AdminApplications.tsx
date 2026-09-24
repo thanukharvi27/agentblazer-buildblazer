@@ -113,6 +113,133 @@ export function AdminApplications() {
     fetchEmailConfig();
   }, []);
 
+  // Manual Mail Composer State
+  interface ManualMailDraft {
+    app: MembershipApplication;
+    type: 'approved' | 'rejected';
+    subject: string;
+    body: string;
+  }
+  const [manualMailDraft, setManualMailDraft] = useState<ManualMailDraft | null>(null);
+  const [copiedDraft, setCopiedDraft] = useState(false);
+
+  const generateMailDraft = (app: MembershipApplication, action: 'approved' | 'rejected'): ManualMailDraft => {
+    const isApproved = action === 'approved';
+    const name = app.name ? app.name.trim() : 'Student';
+    const year = app.year || '2';
+
+    if (isApproved) {
+      const subject = `🎉 Welcome to AgentBlazer Club – Membership Approved! (Dept of CSE, SJEC)`;
+      const body = `Dear ${name},
+
+Congratulations! We are delighted to inform you that your application for membership in the AgentBlazer Club (Department of Computer Science & Engineering, St Joseph Engineering College) has been officially APPROVED!
+
+Welcome to our premier technical community focused on Autonomous AI Agents, Machine Learning, and Salesforce Agentforce architectures.
+
+📋 Official Membership Details:
+• Member Name: ${name}
+• Year of Study: Year ${year}
+• Registered Email: ${app.email}
+• Membership Status: Active / Official Member
+• Profile: Attached to AgentBlazer Club Members Directory
+
+🚀 Next Steps for You:
+1. Community Channels: You will receive invitations to our official club WhatsApp and Discord groups.
+2. Orientation Session: Date, time, and Turing Hall venue details will be announced shortly.
+3. Access to Events: You now have full access to our internal hackathons, code clinics, and workshops.
+
+If you have any questions, feel free to reply directly to this email or reach us at agentblazer@sjec.ac.in.
+
+Once again, welcome to the AgentBlazer family!
+
+Warm regards,
+Core Working Committee & Faculty Coordinators
+AgentBlazer Club • Dept of CSE
+St Joseph Engineering College, Vamanjoor, Mangaluru – 575028`;
+
+      return { app, type: 'approved', subject, body };
+    } else {
+      const subject = `Update on your AgentBlazer Club Membership Application – SJEC CSE`;
+      const body = `Dear ${name},
+
+Thank you for your interest in joining the AgentBlazer Club (Department of Computer Science & Engineering, St Joseph Engineering College) and for taking the time to submit your application.
+
+After careful review by our evaluation committee, we regret to inform you that we are unable to offer you a core membership spot for the current intake cycle due to cohort size constraints.
+
+💡 All Open Workshops & Seminars Remain Open to You:
+Please note that all AgentBlazer open workshops, technical seminars, hackathons, and guest lectures remain completely open to all SJEC students! We warmly encourage you to participate actively in our upcoming events and apply again in our next membership intake.
+
+We truly appreciate your enthusiasm for AI and autonomous agent systems, and we wish you the very best in your academic journey.
+
+Warm regards,
+Core Working Committee & Faculty Coordinators
+AgentBlazer Club • Dept of CSE
+St Joseph Engineering College, Vamanjoor, Mangaluru – 575028`;
+
+      return { app, type: 'rejected', subject, body };
+    }
+  };
+
+  const handleOpenGmailWeb = async (draft: ManualMailDraft) => {
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(draft.app.email)}&su=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`;
+    window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+
+    try {
+      const res = await authFetch(`/api/admin/applications/${draft.app.id}/mark-email-sent`, { method: 'POST' });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => (a.id === draft.app.id ? { ...a, email_status: 'sent', email_notified: 1 } : a)));
+        if (selectedApp?.id === draft.app.id) {
+          setSelectedApp(prev => (prev ? { ...prev, email_status: 'sent', email_notified: 1 } : null));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    showToast(`Opened in Gmail Web! Marked as email notified.`);
+  };
+
+  const handleOpenMailApp = async (draft: ManualMailDraft) => {
+    const mailtoUrl = `mailto:${encodeURIComponent(draft.app.email)}?subject=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`;
+    window.location.href = mailtoUrl;
+
+    try {
+      const res = await authFetch(`/api/admin/applications/${draft.app.id}/mark-email-sent`, { method: 'POST' });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => (a.id === draft.app.id ? { ...a, email_status: 'sent', email_notified: 1 } : a)));
+        if (selectedApp?.id === draft.app.id) {
+          setSelectedApp(prev => (prev ? { ...prev, email_status: 'sent', email_notified: 1 } : null));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    showToast(`Opened in Default Mail App! Marked as email notified.`);
+  };
+
+  const handleCopyDraft = (draft: ManualMailDraft) => {
+    const fullText = `Subject: ${draft.subject}\n\n${draft.body}`;
+    navigator.clipboard.writeText(fullText);
+    setCopiedDraft(true);
+    showToast(`Copied email subject & letter to clipboard!`);
+    setTimeout(() => setCopiedDraft(false), 2500);
+  };
+
+  const handleMarkEmailSent = async (appId: number) => {
+    try {
+      const res = await authFetch(`/api/admin/applications/${appId}/mark-email-sent`, { method: 'POST' });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => (a.id === appId ? { ...a, email_status: 'sent', email_notified: 1 } : a)));
+        if (selectedApp?.id === appId) {
+          setSelectedApp(prev => (prev ? { ...prev, email_status: 'sent', email_notified: 1 } : null));
+        }
+        showToast('Application marked as email notified!');
+        setManualMailDraft(null);
+      }
+    } catch {
+      showToast('Failed to update email status', 'error');
+    }
+  };
+
   const handleStatusChange = async (id: number, newStatus: 'pending' | 'approved' | 'rejected') => {
     try {
       setUpdatingId(id);
@@ -133,18 +260,19 @@ export function AdminApplications() {
 
         const isEmailSent = Boolean(updated.emailSent ?? (updated.email_status === 'sent' || updated.emailResult?.status === 'sent'));
         const actionText = newStatus === 'approved' ? 'APPROVED' : 'REJECTED';
-        const emailErr = updated.emailError || (updated.emailResult?.status === 'failed' ? updated.emailResult?.details : null);
+        const targetApp = applications.find(a => Number(a.id) === Number(id)) || updated;
 
         if (newStatus === 'approved' || newStatus === 'rejected') {
+          // Generate and open the manual mail composer with pre-filled details
+          const draft = generateMailDraft({ ...targetApp, ...updated, status: newStatus }, newStatus);
+          setManualMailDraft(draft);
+
           if (isEmailSent) {
-            showToast(`Application ${actionText} in DB & live notification email sent to ${updated.email}!`);
-          } else if (emailErr) {
-            showToast(
-              `Application ${actionText} in DB, but email failed (${emailErr.slice(0, 85)}...). Use Re-send Email after updating Email Settings.`,
-              'error'
-            );
+            showToast(`🎉 Application ${actionText} in DB & automated email sent! Mail composer opened.`);
+          } else if (newStatus === 'approved') {
+            showToast(`🎉 Application APPROVED & member added to Club Directory! Review pre-filled email:`);
           } else {
-            showToast(`Application ${actionText} in DB! (SMTP not configured; notification logged in DB.)`);
+            showToast(`Application marked as REJECTED in database. Review pre-filled email:`);
           }
         } else {
           showToast(`Application moved back to PENDING review.`);
@@ -679,15 +807,28 @@ export function AdminApplications() {
                         {app.status !== 'pending' && (
                           <div style={{ fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                             {app.email_status === 'sent' || (app.email_notified === 1 && app.email_status !== 'failed') ? (
-                              <span style={{ color: '#38bdf8' }}>✉️ Notified</span>
-                            ) : app.email_status === 'failed' ? (
-                              <span style={{ color: '#f87171' }} title={app.email_error || 'Email delivery failed'}>
-                                ⚠️ Email Failed
-                              </span>
-                            ) : app.email_status === 'not_configured' ? (
-                              <span style={{ color: '#94a3b8' }}>⚠️ Email Not Sent</span>
+                              <span style={{ color: '#4ade80', fontWeight: 600 }}>✓ Email Notified</span>
                             ) : (
-                              <span style={{ color: '#94a3b8' }}>⏳ Pending Email</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const draft = generateMailDraft(app, app.status === 'approved' ? 'approved' : 'rejected');
+                                  setManualMailDraft(draft);
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#38bdf8',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  textDecoration: 'underline',
+                                }}
+                                title="Click to open pre-filled email composer"
+                              >
+                                ✉️ Send Email
+                              </button>
                             )}
                           </div>
                         )}
@@ -756,6 +897,27 @@ export function AdminApplications() {
                             title="Reject applicant & send email notification"
                           >
                             {updatingId === app.id ? '...' : '✕ Reject'}
+                          </button>
+                        )}
+
+                        {app.status !== 'pending' && (
+                          <button
+                            className="adm-btn-secondary"
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: 12,
+                              color: '#38bdf8',
+                              borderColor: 'rgba(56,189,248,0.35)',
+                              fontWeight: 600,
+                              background: 'rgba(56,189,248,0.08)',
+                            }}
+                            onClick={() => {
+                              const draft = generateMailDraft(app, app.status === 'approved' ? 'approved' : 'rejected');
+                              setManualMailDraft(draft);
+                            }}
+                            title="Open pre-filled email composer (Gmail Web / Mail App)"
+                          >
+                            ✉️ Mail
                           </button>
                         )}
 
@@ -976,6 +1138,26 @@ export function AdminApplications() {
                         onClick={() => handleSendEmail(selectedApp.id)}
                       >
                         {sendingEmailId === selectedApp.id ? 'Sending...' : '📨 Re-send Email'}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="adm-btn-secondary"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          borderColor: '#38bdf8',
+                          color: '#38bdf8',
+                          fontWeight: 700,
+                          background: 'rgba(56, 189, 248, 0.12)',
+                        }}
+                        onClick={() => {
+                          const draft = generateMailDraft(selectedApp, selectedApp.status === 'approved' ? 'approved' : 'rejected');
+                          setManualMailDraft(draft);
+                        }}
+                        title="Open pre-filled manual email composer (Gmail Web / Mail App)"
+                      >
+                        ✉️ Compose / Open Email
                       </button>
 
                       <a
@@ -1332,6 +1514,192 @@ export function AdminApplications() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Mail Composer Modal */}
+      {manualMailDraft && (
+        <div className="adm-modal-overlay" onClick={() => setManualMailDraft(null)}>
+          <div
+            className="adm-modal-content"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 650, width: '92vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+          >
+            <div className="adm-modal-header" style={{ alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26 }}>
+                  {manualMailDraft.type === 'approved' ? '🎉' : '✉️'}
+                </span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--adm-text-main)' }}>
+                    {manualMailDraft.type === 'approved'
+                      ? 'Application Approved • Send Welcome Email'
+                      : 'Application Rejected • Send Notification Email'}
+                  </h3>
+                  <div style={{ fontSize: 12, color: 'var(--adm-text-muted)', marginTop: 2 }}>
+                    {manualMailDraft.type === 'approved' ? (
+                      <span style={{ color: '#34d399' }}>
+                        ✓ Applicant automatically attached to Club Members Directory.
+                      </span>
+                    ) : (
+                      <span>Application marked as rejected in database.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setManualMailDraft(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--adm-text-muted)', fontSize: 18, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="adm-modal-body" style={{ overflowY: 'auto', flex: 1 }}>
+              {/* Recipient summary banner */}
+              <div
+                style={{
+                  background: manualMailDraft.type === 'approved' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid',
+                  borderColor: manualMailDraft.type === 'approved' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                  borderRadius: 8,
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  fontSize: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, color: '#f1f5f9' }}>
+                    {manualMailDraft.app.name} ({manualMailDraft.app.year})
+                  </div>
+                  <div style={{ color: 'var(--adm-text-muted)', marginTop: 2 }}>
+                    ✉️ {manualMailDraft.app.email}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    className="adm-badge"
+                    style={{
+                      background: manualMailDraft.type === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: manualMailDraft.type === 'approved' ? '#34d399' : '#f87171',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {manualMailDraft.type === 'approved' ? '● Member Active' : '● Application Rejected'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Subject Input */}
+              <div style={{ marginTop: 14 }}>
+                <label className="adm-label" style={{ marginBottom: 4 }}>Email Subject Line:</label>
+                <input
+                  type="text"
+                  value={manualMailDraft.subject}
+                  onChange={e => setManualMailDraft(prev => (prev ? { ...prev, subject: e.target.value } : null))}
+                  className="adm-input"
+                  style={{ fontWeight: 600 }}
+                />
+              </div>
+
+              {/* Message Body */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label className="adm-label" style={{ margin: 0 }}>Message Letter Body:</label>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyDraft(manualMailDraft)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: copiedDraft ? '#34d399' : '#38bdf8',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {copiedDraft ? '✓ Copied!' : '📋 Copy Letter'}
+                  </button>
+                </div>
+                <textarea
+                  rows={10}
+                  value={manualMailDraft.body}
+                  onChange={e => setManualMailDraft(prev => (prev ? { ...prev, body: e.target.value } : null))}
+                  className="adm-input"
+                  style={{
+                    fontFamily: 'monospace, sans-serif',
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    resize: 'vertical',
+                    width: '100%',
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 11,
+                  color: 'var(--adm-text-muted)',
+                  lineHeight: 1.4,
+                }}
+              >
+                💡 <strong>Tip:</strong> Clicking <strong>Open in Gmail Web</strong> will open a new Gmail tab with this recipient, subject, and letter body filled in automatically.
+              </div>
+            </div>
+
+            <div className="adm-modal-footer" style={{ flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="adm-btn-secondary"
+                onClick={() => setManualMailDraft(null)}
+              >
+                Close
+              </button>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  onClick={() => handleCopyDraft(manualMailDraft)}
+                  title="Copy full message to clipboard"
+                >
+                  {copiedDraft ? '✓ Copied' : '📋 Copy Text'}
+                </button>
+
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  onClick={() => handleOpenMailApp(manualMailDraft)}
+                  title="Open system default mail client (Outlook/Apple Mail)"
+                >
+                  📬 Open in Mail App
+                </button>
+
+                <button
+                  type="button"
+                  className="adm-btn-primary"
+                  style={{
+                    background: '#ef4444',
+                    borderColor: '#ef4444',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 700,
+                  }}
+                  onClick={() => handleOpenGmailWeb(manualMailDraft)}
+                  title="Open Google Gmail web composer in a new tab"
+                >
+                  <span>✉️</span> Open in Gmail Web
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

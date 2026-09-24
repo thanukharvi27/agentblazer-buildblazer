@@ -198,12 +198,12 @@ try {
   // column already exists
 }
 
-// Reset stale email_notified flags for rows where delivery was never actually verified as sent
+// Reset unnotified flags for rows where delivery was never verified as sent
 try {
   db.exec(`
     UPDATE membership_applications
-    SET email_notified = 0, email_status = 'failed', email_error = 'Delivery failed or not verified (Invalid Gmail credentials)'
-    WHERE email_notified = 1 AND (email_status IS NULL OR email_status != 'sent');
+    SET email_notified = 0, email_status = 'pending_mail', email_error = NULL
+    WHERE email_status = 'failed' OR (email_notified = 1 AND (email_status IS NULL OR email_status != 'sent'));
   `);
 } catch (e) {
   // ignore

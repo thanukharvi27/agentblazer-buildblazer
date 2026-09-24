@@ -2528,12 +2528,10 @@ function JoinPage({ setPage }: { setPage: (p: Page) => void }) {
                         colorScheme: 'dark',
                       }}
                     >
-                      <option value="1st Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>1st Year B.E. (CSE)</option>
-                      <option value="2nd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>2nd Year B.E. (CSE)</option>
-                      <option value="3rd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>3rd Year B.E. (CSE)</option>
-                      <option value="4th Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>4th Year B.E. (CSE)</option>
-                      <option value="Other Branch" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Other Engineering Branch</option>
-                      <option value="Faculty / Staff" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Faculty / Staff Member</option>
+                      <option value="1st Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>1st Year B.E.</option>
+                      <option value="2nd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>2nd Year B.E.</option>
+                      <option value="3rd Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>3rd Year B.E.</option>
+                      <option value="4th Year" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>4th Year B.E.</option>
                       <option value="Alumni / Visitor" style={{ backgroundColor: '#120a21', color: '#ffffff' }}>Alumni / Visitor</option>
                     </select>
                   </div>

@@ -58,6 +58,101 @@ export function AdminQueries() {
     setReplyText(q.admin_reply || '');
   };
 
+  const buildQueryMailContent = (q: QueryRecord, customReply?: string) => {
+    const replyContent = (customReply !== undefined ? customReply : (replyText || q.admin_reply || '')).trim();
+    const subject = `Response to your Inquiry: ${q.query.slice(0, 36)}... – Dept of CSE, SJEC`;
+    const body = `Dear ${q.name || 'Student'},
+
+Thank you for reaching out to the Department of Computer Science & Engineering (AgentBlazer Club) at St Joseph Engineering College.
+
+Regarding your inquiry:
+"${q.query}"
+
+${replyContent || '[Response from CSE Coordinators]'}
+
+If you need any further assistance, feel free to reply directly to this email or visit the Department of CSE office.
+
+Warm regards,
+Department of Computer Science & Engineering
+AgentBlazer Club • St Joseph Engineering College
+Vamanjoor, Mangaluru – 575028`;
+
+    return { subject, body };
+  };
+
+  const handleOpenQueryGmailWeb = async (q: QueryRecord, customReply?: string) => {
+    const effectiveReply = (customReply !== undefined ? customReply : replyText).trim();
+    const { subject, body } = buildQueryMailContent(q, effectiveReply);
+
+    // Save reply to DB if provided
+    if (effectiveReply) {
+      try {
+        await authFetch(`/api/admin/queries/${q.id}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reply: effectiveReply }),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    // Open Gmail Web compose tab
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(q.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+
+    // Mark email as sent in DB
+    try {
+      await authFetch(`/api/admin/queries/${q.id}/mark-email-sent`, { method: 'POST' });
+      setQueries(prev => prev.map(item => item.id === q.id ? { ...item, status: 'replied', reply_email_status: 'sent', admin_reply: effectiveReply || item.admin_reply } : item));
+      if (selectedQuery?.id === q.id) {
+        setSelectedQuery(prev => (prev ? { ...prev, status: 'replied', reply_email_status: 'sent', admin_reply: effectiveReply || prev.admin_reply } : null));
+      }
+    } catch {
+      // ignore
+    }
+
+    showToast('Opened in Gmail Web! Reply saved & marked as sent.');
+  };
+
+  const handleOpenQueryMailApp = async (q: QueryRecord, customReply?: string) => {
+    const effectiveReply = (customReply !== undefined ? customReply : replyText).trim();
+    const { subject, body } = buildQueryMailContent(q, effectiveReply);
+
+    if (effectiveReply) {
+      try {
+        await authFetch(`/api/admin/queries/${q.id}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reply: effectiveReply }),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    const mailtoUrl = `mailto:${encodeURIComponent(q.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+
+    try {
+      await authFetch(`/api/admin/queries/${q.id}/mark-email-sent`, { method: 'POST' });
+      setQueries(prev => prev.map(item => item.id === q.id ? { ...item, status: 'replied', reply_email_status: 'sent', admin_reply: effectiveReply || item.admin_reply } : item));
+      if (selectedQuery?.id === q.id) {
+        setSelectedQuery(prev => (prev ? { ...prev, status: 'replied', reply_email_status: 'sent', admin_reply: effectiveReply || prev.admin_reply } : null));
+      }
+    } catch {
+      // ignore
+    }
+
+    showToast('Opened in Mail App! Reply saved & marked as sent.');
+  };
+
+  const handleCopyQueryReply = (q: QueryRecord, customReply?: string) => {
+    const { subject, body } = buildQueryMailContent(q, customReply || replyText);
+    navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+    showToast('Copied full email reply to clipboard!');
+  };
+
   const handleSendReply = async () => {
     if (!selectedQuery) return;
     if (!replyText.trim()) {
@@ -78,21 +173,13 @@ export function AdminQueries() {
         const updated = data.query;
         setQueries(prev => prev.map(item => (item.id === updated.id ? updated : item)));
         setSelectedQuery(updated);
-
-        const emailSent = data.emailResult?.emailSent;
-        if (emailSent) {
-          showToast(`Reply sent successfully & email delivered to ${updated.email}!`);
-        } else if (data.emailResult?.emailError) {
-          showToast(`Reply saved in DB, but email failed: ${data.emailResult.emailError}`, 'error');
-        } else {
-          showToast(`Reply saved in DB! (SMTP in simulation mode)`);
-        }
+        showToast('Reply saved successfully in database!');
       } else {
         const err = await res.json();
-        showToast(err.error || 'Failed to dispatch reply', 'error');
+        showToast(err.error || 'Failed to save reply', 'error');
       }
     } catch {
-      showToast('Network error sending reply', 'error');
+      showToast('Network error saving reply', 'error');
     } finally {
       setSubmittingReply(false);
     }
@@ -483,7 +570,22 @@ export function AdminQueries() {
                             onClick={() => handleOpenReplyModal(q)}
                             title="View inquiry and compose email reply"
                           >
-                            {isReplied ? '👁️ View / Follow-up' : '💬 Respond'}
+                            {isReplied ? '👁️ View / Reply' : '💬 Respond'}
+                          </button>
+
+                          <button
+                            className="adm-btn-secondary"
+                            style={{
+                              padding: '5px 8px',
+                              fontSize: 12,
+                              color: '#38bdf8',
+                              borderColor: 'rgba(56,189,248,0.3)',
+                              fontWeight: 600,
+                            }}
+                            onClick={() => handleOpenReplyModal(q)}
+                            title="Open pre-filled email composer (Gmail Web / Mail App)"
+                          >
+                            ✉️ Mail
                           </button>
 
                           <button
@@ -790,6 +892,8 @@ export function AdminQueries() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 10,
               }}
             >
               <button
@@ -800,31 +904,53 @@ export function AdminQueries() {
                 Close
               </button>
 
-              <button
-                className="adm-btn-primary"
-                onClick={handleSendReply}
-                disabled={submittingReply || !replyText.trim()}
-                style={{
-                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                  padding: '8px 18px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                {submittingReply ? (
-                  <>
-                    <span>⏳</span>
-                    <span>Dispatching Email...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>✉️</span>
-                    <span>Send Response to {selectedQuery.name}</span>
-                  </>
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  onClick={() => handleCopyQueryReply(selectedQuery)}
+                  title="Copy formatted email response to clipboard"
+                >
+                  📋 Copy Text
+                </button>
+
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  onClick={() => handleOpenQueryMailApp(selectedQuery)}
+                  title="Save reply and open in Outlook / default mail client"
+                >
+                  📬 Open in Mail App
+                </button>
+
+                <button
+                  type="button"
+                  className="adm-btn-secondary"
+                  onClick={handleSendReply}
+                  disabled={submittingReply || !replyText.trim()}
+                  title="Save response in database only"
+                >
+                  💾 Save in DB
+                </button>
+
+                <button
+                  type="button"
+                  className="adm-btn-primary"
+                  style={{
+                    background: '#ef4444',
+                    borderColor: '#ef4444',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 700,
+                  }}
+                  onClick={() => handleOpenQueryGmailWeb(selectedQuery)}
+                  title="Save reply and open Google Gmail composer in a new tab"
+                >
+                  <span>✉️</span> Open in Gmail Web
+                </button>
+              </div>
             </div>
           </div>
         </div>

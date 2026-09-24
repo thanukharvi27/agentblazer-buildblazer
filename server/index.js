@@ -862,13 +862,38 @@ app.patch('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
       return res.status(404).json({ error: 'Application not found.' });
     }
 
-    // Save/remove from MongoDB based on status
+    // Save/remove from SQLite members & MongoDB based on status
     let mongoResult = null;
+    let memberAttached = false;
     if (status === 'approved') {
+      // 1. Save to MongoDB if available
       try {
         mongoResult = await saveApprovedMember(updated);
       } catch (mongoErr) {
         console.error('Error saving approved member to MongoDB:', mongoErr);
+      }
+
+      // 2. Automatically attach member to SQLite members table
+      try {
+        const existingMember = db.prepare('SELECT id FROM members WHERE name = ? COLLATE NOCASE').get(updated.name);
+        if (!existingMember) {
+          const initials = updated.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'MB';
+          db.prepare(`
+            INSERT INTO members (category, name, role, title, title_class, description, image_url, initials, initials_color, highlighted, display_order, active)
+            VALUES ('student', ?, ?, 'Club Member', 'badge-cyan', ?, '', ?, '', 0, 99, 1)
+          `).run(
+            updated.name,
+            `Club Member • Year ${updated.year || '2'}`,
+            `AgentBlazer Club Member, CSE Department. Year ${updated.year || '2'}.`,
+            initials
+          );
+          memberAttached = true;
+          console.log(`[Members] Automatically attached approved applicant "${updated.name}" to Club Members.`);
+        } else {
+          memberAttached = true;
+        }
+      } catch (dbMemberErr) {
+        console.error('Error attaching member to SQLite members table:', dbMemberErr);
       }
     } else {
       // If moved to rejected/pending, remove from MongoDB approved list
@@ -877,27 +902,31 @@ app.patch('/api/admin/applications/:id', requireAdminAuth, async (req, res) => {
       } catch (mongoErr) {
         console.error('Error removing member from MongoDB:', mongoErr);
       }
-    }
-
-    // Trigger email notification to the student upon approval or rejection
-    let emailResult = null;
-    if (status === 'approved' || status === 'rejected') {
+      // Also remove from SQLite members table
       try {
-        emailResult = await sendApplicationStatusEmail(updated, status);
-      } catch (emailErr) {
-        console.error('Error dispatching application status email:', emailErr);
+        db.prepare("DELETE FROM members WHERE name = ? COLLATE NOCASE AND category = 'student'").run(updated.name);
+      } catch (dbMemberErr) {
+        console.error('Error removing member from SQLite members table:', dbMemberErr);
       }
     }
 
-    // Re-fetch in case emailService updated email status fields
+    // Reset email error on status change so applicant is ready for manual email dispatch
+    db.prepare(`
+      UPDATE membership_applications
+      SET email_status = 'pending_mail',
+          email_error = NULL
+      WHERE id = ?
+    `).run(id);
+
+    // Re-fetch clean updated record
     const finalUpdated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
 
     res.json({
       ...finalUpdated,
-      emailSent: emailResult ? emailResult.emailSent : false,
-      emailStatus: emailResult ? emailResult.emailStatus : 'not_configured',
-      emailError: emailResult ? emailResult.emailError : null,
-      emailResult,
+      memberAttached,
+      emailSent: false,
+      emailStatus: 'pending_mail',
+      emailError: null,
       mongoResult: mongoResult ? 'saved' : null
     });
   } catch (err) {
@@ -937,6 +966,25 @@ app.post('/api/admin/applications/:id/send-email', requireAdminAuth, async (req,
   } catch (err) {
     console.error('Error sending application email:', err);
     res.status(500).json({ error: 'Failed to dispatch email notification.' });
+  }
+});
+
+app.post('/api/admin/applications/:id/mark-email-sent', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare(`
+      UPDATE membership_applications
+      SET email_notified = 1,
+          email_notified_at = ?,
+          email_status = 'sent',
+          email_error = NULL
+      WHERE id = ?
+    `).run(new Date().toISOString(), id);
+    const updated = db.prepare('SELECT * FROM membership_applications WHERE id = ?').get(id);
+    res.json({ success: true, application: updated });
+  } catch (err) {
+    console.error('Error marking email sent:', err);
+    res.status(500).json({ error: 'Failed to update email status.' });
   }
 });
 
@@ -1064,7 +1112,7 @@ app.get('/api/admin/queries', requireAdminAuth, (req, res) => {
   }
 });
 
-app.post('/api/admin/queries/:id/reply', requireAdminAuth, async (req, res) => {
+app.post('/api/admin/queries/:id/reply', requireAdminAuth, (req, res) => {
   try {
     const { id } = req.params;
     const { reply } = req.body;
@@ -1078,17 +1126,45 @@ app.post('/api/admin/queries/:id/reply', requireAdminAuth, async (req, res) => {
       return res.status(404).json({ error: 'Inquiry query not found.' });
     }
 
-    const emailResult = await sendQueryReplyEmail(queryRecord, String(reply).trim());
+    const trimmedReply = String(reply).trim();
+    db.prepare(`
+      UPDATE queries
+      SET admin_reply = ?,
+          status = 'replied',
+          replied_at = ?,
+          reply_email_status = 'pending_manual',
+          reply_email_error = NULL
+      WHERE id = ?
+    `).run(trimmedReply, new Date().toISOString(), id);
+
     const updated = db.prepare('SELECT * FROM queries WHERE id = ?').get(id);
 
     res.json({
       success: true,
       query: updated,
-      emailResult,
+      emailResult: { success: true, emailSent: false, emailStatus: 'ready_manual' },
     });
   } catch (err) {
-    console.error('Error sending query reply:', err);
-    res.status(500).json({ error: 'Failed to dispatch reply.' });
+    console.error('Error saving query reply:', err);
+    res.status(500).json({ error: 'Failed to save reply.' });
+  }
+});
+
+app.post('/api/admin/queries/:id/mark-email-sent', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare(`
+      UPDATE queries
+      SET reply_email_status = 'sent',
+          reply_email_error = NULL,
+          status = 'replied'
+      WHERE id = ?
+    `).run(id);
+    const updated = db.prepare('SELECT * FROM queries WHERE id = ?').get(id);
+    res.json({ success: true, query: updated });
+  } catch (err) {
+    console.error('Error marking query email as sent:', err);
+    res.status(500).json({ error: 'Failed to update email status.' });
   }
 });
 
