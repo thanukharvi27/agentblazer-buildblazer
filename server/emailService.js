@@ -27,7 +27,7 @@ export function formatSmtpError(err) {
     return 'Authentication failed (535 BadCredentials): Gmail/SMTP server rejected your credentials. For Gmail, make sure 2-Step Verification is enabled and a 16-character App Password (from myaccount.google.com/apppasswords) is used instead of your account password.';
   }
   if (msg.includes('ETIMEDOUT') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND')) {
-    return `Connection error: Could not reach SMTP host (${err.code || 'Network timeout'}). Please check your SMTP host and port.`;
+    return `Connection timeout (${err.code || 'ETIMEDOUT'}). Render Free Tier blocks outbound SMTP ports (25, 465, 587). To send live emails from Render, use an HTTPS API key (such as Resend or Brevo) in Email Settings, or upgrade to a paid Render plan.`;
   }
   if (msg.includes('EENVELOPE') || msg.includes('No recipients defined')) {
     return `Invalid email address or envelope format (${err.code || 'Envelope error'}).`;
@@ -49,7 +49,8 @@ export function getEmailConfig() {
     }
   };
 
-  const service = (getSetting('smtp_service') || process.env.SMTP_SERVICE || '').trim().toLowerCase();
+  const resendApiKey = (getSetting('resend_api_key') || process.env.RESEND_API_KEY || '').trim();
+  const service = (getSetting('smtp_service') || process.env.SMTP_SERVICE || (resendApiKey ? 'resend' : '')).trim().toLowerCase();
   const host = (getSetting('smtp_host') || process.env.SMTP_HOST || '').trim();
   const port = Number(getSetting('smtp_port') || process.env.SMTP_PORT || '587') || 587;
   const user = (getSetting('smtp_user') || process.env.SMTP_USER || '').trim();
@@ -69,7 +70,7 @@ export function getEmailConfig() {
   }
 
   const isPlaceholder = !pass || pass === 'your-16-character-app-password' || pass.includes('app-password');
-  const isConfigured = Boolean((service || host) && user && pass && !isPlaceholder);
+  const isConfigured = Boolean(resendApiKey || ((service || host) && user && pass && !isPlaceholder));
 
   return {
     service,
@@ -78,6 +79,8 @@ export function getEmailConfig() {
     user,
     pass, // internal
     hasPassword: Boolean(pass && !isPlaceholder),
+    resendApiKey,
+    hasResend: Boolean(resendApiKey),
     from,
     isConfigured,
   };
@@ -86,7 +89,7 @@ export function getEmailConfig() {
 /**
  * Save email settings to SQLite app_settings
  */
-export function saveEmailConfig({ service, host, port, user, pass, from }) {
+export function saveEmailConfig({ service, host, port, user, pass, from, resendApiKey, resend_api_key }) {
   const setSetting = db.prepare(`
     INSERT INTO app_settings (key, value)
     VALUES (?, ?)
@@ -106,6 +109,11 @@ export function saveEmailConfig({ service, host, port, user, pass, from }) {
   }
   if (from !== undefined) setSetting.run('smtp_from', from.trim());
 
+  const apiKeyVal = resendApiKey !== undefined ? resendApiKey : resend_api_key;
+  if (apiKeyVal !== undefined) {
+    setSetting.run('resend_api_key', apiKeyVal.trim());
+  }
+
   return getEmailConfig();
 }
 
@@ -115,7 +123,7 @@ export function saveEmailConfig({ service, host, port, user, pass, from }) {
 function getTransporter(overrideConfig = null) {
   const config = overrideConfig ? { ...getEmailConfig(), ...overrideConfig } : getEmailConfig();
 
-  if (!config.isConfigured || !config.user || !config.pass) {
+  if (!config.user || !config.pass) {
     return null;
   }
 
@@ -159,16 +167,141 @@ function getTransporter(overrideConfig = null) {
 }
 
 /**
+ * Universal dispatcher that uses Resend HTTPS API (Port 443, never blocked by cloud hosts)
+ * or falls back to Nodemailer SMTP (Port 587/465).
+ */
+export async function sendRawEmail({ to, subject, html, fromOverride = null, configOverride = null }) {
+  const config = configOverride || getEmailConfig();
+  const from = fromOverride || config.from;
+
+  // 1. Resend HTTPS API (Port 443) — Works everywhere including Render free tier
+  if (config.resendApiKey) {
+    console.log(`[Email] Dispatching via Resend HTTPS API to <${to}>...`);
+    try {
+      const fromHeader = from && from.includes('@') ? from : 'AgentBlazer Club <onboarding@resend.dev>';
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromHeader,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Resend API returned status ${res.status}`);
+      }
+      console.log(`[Resend SUCCESS] Email delivered to <${to}> (Id: ${data.id})`);
+      return {
+        success: true,
+        deliveryStatus: 'sent',
+        deliveryDetails: `Delivered via Resend HTTPS API (Id: ${data.id})`,
+      };
+    } catch (err) {
+      console.error('[Resend Error]:', err.message);
+      return {
+        success: false,
+        deliveryStatus: 'failed',
+        deliveryDetails: `Resend HTTPS API Error: ${err.message}`,
+      };
+    }
+  }
+
+  // 2. Nodemailer SMTP (Port 587/465)
+  const transporter = getTransporter(config);
+  if (transporter) {
+    console.log(`[SMTP] Attempting delivery to <${to}> via ${config.service || config.host}...`);
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[SMTP SUCCESS] Delivered email to <${to}> (MessageId: ${info.messageId})`);
+      return {
+        success: true,
+        deliveryStatus: 'sent',
+        deliveryDetails: `Delivered via SMTP (MessageId: ${info.messageId || 'sent'})`,
+      };
+    } catch (err) {
+      const errorDetails = formatSmtpError(err);
+      console.error(`[SMTP ERROR] Failed sending to <${to}>:`, errorDetails);
+      return {
+        success: false,
+        deliveryStatus: 'failed',
+        deliveryDetails: errorDetails,
+      };
+    }
+  }
+
+  return {
+    success: false,
+    deliveryStatus: 'simulated',
+    deliveryDetails: 'No email service or SMTP credentials configured; notification recorded in database.',
+  };
+}
+
+/**
  * Verify transporter connection or send test email
  */
 export async function testEmailConnection(testRecipient = null, customConfig = null) {
   let activeConfig = getEmailConfig();
-  if (customConfig && (customConfig.user || customConfig.pass || customConfig.service || customConfig.host)) {
+  if (customConfig) {
     activeConfig = {
       ...activeConfig,
       ...customConfig,
       pass: (customConfig.pass && customConfig.pass.trim() !== '') ? customConfig.pass : activeConfig.pass,
+      resendApiKey: (customConfig.resendApiKey !== undefined && customConfig.resendApiKey.trim() !== '')
+        ? customConfig.resendApiKey.trim()
+        : activeConfig.resendApiKey,
     };
+  }
+
+  // If using Resend API Key:
+  if (activeConfig.resendApiKey) {
+    try {
+      const testTo = testRecipient || 'delivered@resend.dev';
+      const fromHeader = activeConfig.from && activeConfig.from.includes('@') ? activeConfig.from : 'AgentBlazer Club <onboarding@resend.dev>';
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${activeConfig.resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromHeader,
+          to: [testTo],
+          subject: '🧪 AgentBlazer Club Resend API Verification Test',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; border-radius: 10px;">
+              <h2 style="color: #38bdf8;">✓ Resend HTTPS API Verification Successful!</h2>
+              <p>This is a verification test email from the AgentBlazer Club Admin Console dispatched via Resend HTTPS API (Port 443).</p>
+              <p>All automated approval, rejection, and inquiry reply notifications will be delivered live reliably from cloud hosts like Render.</p>
+              <hr style="border-color: #334155;" />
+              <small style="color: #94a3b8;">Sent via Resend API to ${testTo}</small>
+            </div>
+          `,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Resend API returned status ${res.status}`);
+      }
+      return {
+        success: true,
+        message: testRecipient ? `Connected! Resend test email sent to ${testRecipient}.` : 'Resend API key verified successfully.',
+      };
+    } catch (err) {
+      console.error('[Resend Verification Error]:', err.message);
+      return { success: false, error: `Resend API Error: ${err.message}` };
+    }
   }
 
   const transporter = getTransporter(activeConfig);
@@ -176,7 +309,7 @@ export async function testEmailConnection(testRecipient = null, customConfig = n
   if (!transporter) {
     return {
       success: false,
-      error: 'SMTP credentials not configured yet. Please enter your email and App Password.',
+      error: 'SMTP credentials or Resend API key not configured yet. Please enter your email and App Password.',
     };
   }
 
@@ -329,33 +462,14 @@ export async function sendApplicationStatusEmail(application, status) {
 </html>
 `;
 
-  let deliveryStatus = 'simulated';
-  let deliveryDetails = '';
+  const sendResult = await sendRawEmail({
+    to: email,
+    subject,
+    html: htmlContent,
+  });
 
-  const transporter = getTransporter();
-
-  if (transporter) {
-    console.log(`[SMTP] Attempting to deliver ${status} notification to "${name}" <${email}> via ${config.service || config.host}...`);
-    try {
-      const info = await transporter.sendMail({
-        from: config.from,
-        to: email,
-        subject,
-        html: htmlContent,
-      });
-      deliveryStatus = 'sent';
-      deliveryDetails = `Delivered via SMTP (MessageId: ${info.messageId || 'sent'})`;
-      console.log(`[SMTP SUCCESS] Delivered ${status} email to <${email}> (MessageId: ${info.messageId})`);
-    } catch (err) {
-      deliveryStatus = 'failed';
-      deliveryDetails = formatSmtpError(err);
-      console.error(`[SMTP ERROR] Failed sending ${status} email to <${email}>:`, deliveryDetails);
-    }
-  } else {
-    deliveryStatus = 'simulated';
-    deliveryDetails = 'SMTP not configured in environment or settings; notification recorded in database.';
-    console.log(`[SMTP Simulated] No SMTP credentials configured. Notification for "${name}" <${email}> recorded in database.`);
-  }
+  const deliveryStatus = sendResult.deliveryStatus;
+  const deliveryDetails = sendResult.deliveryDetails;
 
   // Record in database email_logs
   try {
@@ -532,33 +646,14 @@ export async function sendQueryReplyEmail(queryRecord, replyMessage) {
 </html>
   `;
 
-  let deliveryStatus = 'simulated';
-  let deliveryDetails = '';
+  const sendResult = await sendRawEmail({
+    to: email,
+    subject,
+    html,
+  });
 
-  const transporter = getTransporter();
-
-  if (transporter) {
-    console.log(`[SMTP] Attempting to deliver query reply to "${name}" <${email}> via ${config.service || config.host}...`);
-    try {
-      const info = await transporter.sendMail({
-        from: config.from,
-        to: email,
-        subject,
-        html,
-      });
-      deliveryStatus = 'sent';
-      deliveryDetails = `Delivered via SMTP (MessageId: ${info.messageId || 'sent'})`;
-      console.log(`[SMTP SUCCESS] Delivered query reply to <${email}> (MessageId: ${info.messageId})`);
-    } catch (err) {
-      deliveryStatus = 'failed';
-      deliveryDetails = formatSmtpError(err);
-      console.error(`[SMTP ERROR] Failed sending query reply to <${email}>:`, deliveryDetails);
-    }
-  } else {
-    deliveryStatus = 'simulated';
-    deliveryDetails = 'SMTP not configured in environment or settings; response recorded in database.';
-    console.log(`[SMTP Simulated] SMTP not configured. Response for "${name}" <${email}> recorded in database.`);
-  }
+  const deliveryStatus = sendResult.deliveryStatus;
+  const deliveryDetails = sendResult.deliveryDetails;
 
   // Record in database email_logs & queries table
   try {

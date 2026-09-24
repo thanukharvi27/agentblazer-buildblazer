@@ -27,6 +27,8 @@ interface EmailConfig {
   port: number;
   user: string;
   hasPassword: boolean;
+  resendApiKey?: string;
+  hasResend?: boolean;
   from: string;
   isConfigured: boolean;
 }
@@ -55,6 +57,7 @@ export function AdminApplications() {
     user: '',
     pass: '',
     from: '',
+    resendApiKey: '',
   });
   const [testRecipient, setTestRecipient] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
@@ -74,12 +77,13 @@ export function AdminApplications() {
         const data = await res.json();
         setEmailConfig(data);
         setEmailForm({
-          service: data.service || 'gmail',
+          service: data.service || (data.resendApiKey ? 'resend' : 'gmail'),
           host: data.host || '',
           port: data.port || 587,
           user: data.user || '',
           pass: '',
           from: data.from || '',
+          resendApiKey: data.resendApiKey || '',
         });
       }
     } catch (e) {
@@ -1065,135 +1069,218 @@ export function AdminApplications() {
               <div className="adm-modal-body">
                 {/* Method selector */}
                 <div>
-                  <label className="adm-label">Mail Provider / Protocol:</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <label className="adm-label">Mail Provider / Delivery Method:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
                     <button
                       type="button"
                       className="adm-btn-secondary"
                       style={{
-                        flex: 1,
-                        background: emailForm.service === 'gmail' ? 'rgba(56, 189, 248, 0.15)' : undefined,
+                        background: emailForm.service === 'resend' ? 'rgba(56, 189, 248, 0.18)' : undefined,
+                        borderColor: emailForm.service === 'resend' ? '#38bdf8' : undefined,
+                        color: emailForm.service === 'resend' ? '#38bdf8' : undefined,
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                      onClick={() => setEmailForm(prev => ({ ...prev, service: 'resend' }))}
+                    >
+                      ⚡ Resend API (Render Cloud)
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn-secondary"
+                      style={{
+                        background: emailForm.service === 'gmail' ? 'rgba(56, 189, 248, 0.18)' : undefined,
                         borderColor: emailForm.service === 'gmail' ? '#38bdf8' : undefined,
                         color: emailForm.service === 'gmail' ? '#38bdf8' : undefined,
                         fontWeight: 600,
+                        fontSize: 12,
                       }}
                       onClick={() => setEmailForm(prev => ({ ...prev, service: 'gmail', host: '', port: 587 }))}
                     >
-                      Gmail (Recommended)
+                      Gmail (App Password)
                     </button>
                     <button
                       type="button"
                       className="adm-btn-secondary"
                       style={{
-                        flex: 1,
-                        background: emailForm.service !== 'gmail' ? 'rgba(56, 189, 248, 0.15)' : undefined,
-                        borderColor: emailForm.service !== 'gmail' ? '#38bdf8' : undefined,
-                        color: emailForm.service !== 'gmail' ? '#38bdf8' : undefined,
+                        background: (emailForm.service !== 'gmail' && emailForm.service !== 'resend') ? 'rgba(56, 189, 248, 0.18)' : undefined,
+                        borderColor: (emailForm.service !== 'gmail' && emailForm.service !== 'resend') ? '#38bdf8' : undefined,
+                        color: (emailForm.service !== 'gmail' && emailForm.service !== 'resend') ? '#38bdf8' : undefined,
                         fontWeight: 600,
+                        fontSize: 12,
                       }}
-                      onClick={() => setEmailForm(prev => ({ ...prev, service: '', host: prev.host || 'smtp.gmail.com', port: 587 }))}
+                      onClick={() => setEmailForm(prev => ({ ...prev, service: 'smtp', host: prev.host || 'smtp.gmail.com', port: 587 }))}
                     >
-                      Custom SMTP / SJEC Server
+                      Custom SMTP
                     </button>
                   </div>
                 </div>
 
-                {/* Email Address */}
-                <div>
-                  <label className="adm-label">Sender Email Address:</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. agentblazer@sjec.ac.in or yourname@gmail.com"
-                    value={emailForm.user}
-                    onChange={e => setEmailForm(prev => ({ ...prev, user: e.target.value }))}
-                    className="adm-input"
-                  />
-                </div>
-
-                {/* App Password */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <label className="adm-label" style={{ margin: 0 }}>
-                      App Password {emailConfig?.hasPassword ? '(Saved • Leave blank to keep)' : '(Required)'}:
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(p => !p)}
-                      style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: 11, cursor: 'pointer' }}
+                {/* Resend HTTPS API Section */}
+                {emailForm.service === 'resend' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.08)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        borderRadius: 8,
+                        padding: 12,
+                        fontSize: 12,
+                        color: '#93c5fd',
+                        lineHeight: 1.5,
+                      }}
                     >
-                      {showPassword ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={emailConfig?.hasPassword ? '••••••••••••••••' : 'Enter 16-character App Password'}
-                    value={emailForm.pass}
-                    onChange={e => setEmailForm(prev => ({ ...prev, pass: e.target.value }))}
-                    className="adm-input"
-                  />
-                </div>
+                      <strong style={{ color: '#ffffff' }}>🚀 Recommended for Render Free Tier & Cloud Hosts:</strong>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        Render Free Tier blocks outbound SMTP ports (587, 465). <strong>Resend sends via HTTPS (Port 443)</strong>, which is never blocked and guarantees instantaneous delivery. Free tier gives 3,000 emails/month at <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'underline' }}>resend.com</a>.
+                      </p>
+                    </div>
 
-                {/* Custom host & port if not Gmail */}
-                {emailForm.service !== 'gmail' && (
-                  <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
                     <div>
-                      <label className="adm-label">SMTP Host:</label>
+                      <label className="adm-label">Resend API Key:</label>
                       <input
-                        type="text"
-                        placeholder="smtp.example.com"
-                        value={emailForm.host}
-                        onChange={e => setEmailForm(prev => ({ ...prev, host: e.target.value }))}
+                        type="password"
+                        placeholder={emailConfig?.hasResend ? '•••••••••••••••• (Key Saved)' : 're_123456789abcdef...'}
+                        value={emailForm.resendApiKey}
+                        onChange={e => setEmailForm(prev => ({ ...prev, resendApiKey: e.target.value }))}
                         className="adm-input"
                       />
                     </div>
+
                     <div>
-                      <label className="adm-label">Port:</label>
+                      <label className="adm-label">Display From Name / Address (Optional):</label>
                       <input
-                        type="number"
-                        placeholder="587"
-                        value={emailForm.port}
-                        onChange={e => setEmailForm(prev => ({ ...prev, port: Number(e.target.value) }))}
+                        type="text"
+                        placeholder="AgentBlazer Club <onboarding@resend.dev>"
+                        value={emailForm.from}
+                        onChange={e => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
                         className="adm-input"
                       />
+                      <small style={{ color: 'var(--adm-text-muted)', fontSize: 11, marginTop: 4, display: 'block' }}>
+                        Note: Resend test domain uses <code>onboarding@resend.dev</code>. You can also verify your college domain in Resend.
+                      </small>
                     </div>
                   </div>
                 )}
 
-                {/* From Name Header */}
-                <div>
-                  <label className="adm-label">Display From Name (Optional):</label>
-                  <input
-                    type="text"
-                    placeholder='"AgentBlazer Club • SJEC CSE" <agentblazer@sjec.ac.in>'
-                    value={emailForm.from}
-                    onChange={e => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
-                    className="adm-input"
-                  />
-                </div>
+                {/* Gmail & Custom SMTP Section */}
+                {emailForm.service !== 'resend' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {emailForm.service === 'gmail' && (
+                      <div
+                        style={{
+                          background: 'rgba(234, 179, 8, 0.08)',
+                          border: '1px solid rgba(234, 179, 8, 0.3)',
+                          borderRadius: 8,
+                          padding: 10,
+                          fontSize: 12,
+                          color: '#fde047',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        ⚠️ <strong>Cloud Note:</strong> Gmail SMTP works perfectly in local testing. However, if your API is deployed on <strong>Render Free Tier</strong>, Render blocks port 587 (causing "Connection timeout"). If deploying on Render, switch to the <strong>⚡ Resend API</strong> tab above.
+                      </div>
+                    )}
 
-                {/* How to get Gmail App Password Instructions */}
-                <div
-                  style={{
-                    background: 'rgba(59, 130, 246, 0.08)',
-                    border: '1px solid rgba(59, 130, 246, 0.25)',
-                    borderRadius: 10,
-                    padding: 14,
-                    fontSize: 12,
-                    lineHeight: 1.6,
-                    color: '#93c5fd',
-                  }}
-                >
-                  <strong style={{ color: '#ffffff', display: 'block', marginBottom: 4 }}>
-                    💡 How to generate a Gmail App Password in 2 minutes:
-                  </strong>
-                  <ol style={{ margin: 0, paddingLeft: 18 }}>
-                    <li>Open your Google Account (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>myaccount.google.com/security</a>).</li>
-                    <li>Ensure <strong>2-Step Verification</strong> is enabled.</li>
-                    <li>Search for <strong>App passwords</strong> in the search bar.</li>
-                    <li>Name it <code>AgentBlazer</code>, copy the generated 16-character code, and paste it into the password box above.</li>
-                  </ol>
-                </div>
+                    {/* Email Address */}
+                    <div>
+                      <label className="adm-label">Sender Email Address:</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. agentblazer@sjec.ac.in or yourname@gmail.com"
+                        value={emailForm.user}
+                        onChange={e => setEmailForm(prev => ({ ...prev, user: e.target.value }))}
+                        className="adm-input"
+                      />
+                    </div>
+
+                    {/* App Password */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <label className="adm-label" style={{ margin: 0 }}>
+                          App Password {emailConfig?.hasPassword ? '(Saved • Leave blank to keep)' : '(Required)'}:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(p => !p)}
+                          style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: 11, cursor: 'pointer' }}
+                        >
+                          {showPassword ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={emailConfig?.hasPassword ? '••••••••••••••••' : 'Enter 16-character App Password'}
+                        value={emailForm.pass}
+                        onChange={e => setEmailForm(prev => ({ ...prev, pass: e.target.value }))}
+                        className="adm-input"
+                      />
+                    </div>
+
+                    {/* Custom host & port if not Gmail */}
+                    {emailForm.service !== 'gmail' && (
+                      <div className="adm-form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                        <div>
+                          <label className="adm-label">SMTP Host:</label>
+                          <input
+                            type="text"
+                            placeholder="smtp.example.com"
+                            value={emailForm.host}
+                            onChange={e => setEmailForm(prev => ({ ...prev, host: e.target.value }))}
+                            className="adm-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="adm-label">Port:</label>
+                          <input
+                            type="number"
+                            placeholder="587"
+                            value={emailForm.port}
+                            onChange={e => setEmailForm(prev => ({ ...prev, port: Number(e.target.value) }))}
+                            className="adm-input"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* From Name Header */}
+                    <div>
+                      <label className="adm-label">Display From Name (Optional):</label>
+                      <input
+                        type="text"
+                        placeholder='"AgentBlazer Club • SJEC CSE" <agentblazer@sjec.ac.in>'
+                        value={emailForm.from}
+                        onChange={e => setEmailForm(prev => ({ ...prev, from: e.target.value }))}
+                        className="adm-input"
+                      />
+                    </div>
+
+                    {/* Gmail App Password Instructions */}
+                    {emailForm.service === 'gmail' && (
+                      <div
+                        style={{
+                          background: 'rgba(59, 130, 246, 0.08)',
+                          border: '1px solid rgba(59, 130, 246, 0.25)',
+                          borderRadius: 8,
+                          padding: 12,
+                          fontSize: 12,
+                          lineHeight: 1.6,
+                          color: '#93c5fd',
+                        }}
+                      >
+                        <strong style={{ color: '#ffffff', display: 'block', marginBottom: 4 }}>
+                          💡 How to generate a Gmail App Password in 2 minutes:
+                        </strong>
+                        <ol style={{ margin: 0, paddingLeft: 18 }}>
+                          <li>Open your Google Account (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" style={{ color: '#38bdf8' }}>myaccount.google.com/security</a>).</li>
+                          <li>Ensure <strong>2-Step Verification</strong> is enabled.</li>
+                          <li>Search for <strong>App passwords</strong> in the search bar.</li>
+                          <li>Name it <code>AgentBlazer</code>, copy the 16-character code, and paste it above.</li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Connection Test Section */}
                 <div style={{ borderTop: '1px solid var(--adm-border)', paddingTop: 14 }}>
