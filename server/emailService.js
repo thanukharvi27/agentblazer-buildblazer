@@ -26,8 +26,8 @@ export function formatSmtpError(err) {
   if (msg.includes('535') || msg.includes('BadCredentials') || msg.includes('Username and Password not accepted')) {
     return 'Authentication failed (535 BadCredentials): Gmail/SMTP server rejected your credentials. For Gmail, make sure 2-Step Verification is enabled and a 16-character App Password (from myaccount.google.com/apppasswords) is used instead of your account password.';
   }
-  if (msg.includes('ETIMEDOUT') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND')) {
-    return `Connection timeout (${err.code || 'ETIMEDOUT'}). Render Free Tier blocks outbound SMTP ports (25, 465, 587). To send live emails from Render, use an HTTPS API key (such as Resend or Brevo) in Email Settings, or upgrade to a paid Render plan.`;
+  if (msg.includes('ETIMEDOUT') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('ENETUNREACH')) {
+    return `Network/Port blocked (${err.code || 'ENETUNREACH'}). Render Free Tier blocks outbound SMTP ports (25, 465, 587). To send live emails from Render, use the Resend HTTPS API in Email Settings, or upgrade to a paid Render plan.`;
   }
   if (msg.includes('EENVELOPE') || msg.includes('No recipients defined')) {
     return `Invalid email address or envelope format (${err.code || 'Envelope error'}).`;
@@ -136,6 +136,7 @@ function getTransporter(overrideConfig = null) {
       port: 587,
       secure: false,
       requireTLS: true,
+      family: 4,
       auth: {
         user: config.user.trim(),
         pass: cleanPass,
@@ -153,6 +154,7 @@ function getTransporter(overrideConfig = null) {
       port,
       secure: port === 465,
       requireTLS: port === 587,
+      family: 4,
       auth: {
         user: config.user.trim(),
         pass: cleanPass,
